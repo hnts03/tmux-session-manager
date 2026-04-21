@@ -3,7 +3,7 @@
 #   brew install --formula ./Formula/tsm.rb
 #
 # Once a tap is published:
-#   brew tap hnts03/tsm
+#   brew tap hnts03/tmux-session-manager
 #   brew install tsm
 
 class Tsm < Formula
