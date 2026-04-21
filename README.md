@@ -33,7 +33,7 @@ $ tsm
 ### Homebrew (macOS / Linux)
 
 ```sh
-brew tap hnts03/tmux-session-manager
+brew tap hnts03/tsm
 brew install tsm
 ```
 
