@@ -92,22 +92,11 @@ INSTALL_DIR=~/.local/bin ./uninstall.sh
 
 ## Usage
 
-### Interactive picker
-
 ```sh
 tsm
 ```
 
 Opens an fzf picker with all tmux sessions. Inside tmux it runs `switch-client`; outside it runs `attach-session`.
-
-### Subcommands
-
-```sh
-tsm new [name]   # create and attach a new session (prompts if name omitted)
-tsm ls           # list sessions
-tsm version      # show version
-tsm help         # show help
-```
 
 ### Keybindings
 
@@ -129,6 +118,15 @@ tsm help         # show help
 ```sh
 [[ -z "$TMUX" ]] && tsm
 ```
+
+---
+
+## Roadmap
+
+- [ ] `tsm new [name]` — create and attach a new session from the CLI
+- [ ] `tsm ls` — list all sessions without opening the picker
+- [ ] `tsm kill [name]` — kill a session by name from the CLI
+- [ ] Shell completion (bash / zsh / fish)
 
 ---
 
