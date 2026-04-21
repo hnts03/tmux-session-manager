@@ -13,7 +13,7 @@ class Tsm < Formula
 
   # Update url and sha256 after first GitHub release
   url "https://github.com/hnts03/tmux-session-manager/archive/refs/tags/v#{version}.tar.gz"
-  sha256 "" # fill after tagging
+  sha256 "459b7ffbe3bfbc7c8be51e3c19ad032dac13522f3d5e89ff2bda8a2a96d8f753"
 
   license "MIT"
 
