@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+# tsm - tmux session manager
+# A lightweight fzf-based tmux session manager
+# https://github.com/choegeon-u/tmux-session-manager
+
+set -euo pipefail
+
+VERSION="0.1.0"
+
+# ─── dependency check ────────────────────────────────────────────────────────
+
+check_deps() {
+  local missing=()
+  command -v tmux &>/dev/null || missing+=("tmux")
+  command -v fzf  &>/dev/null || missing+=("fzf")
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "tsm: missing required dependencies: ${missing[*]}" >&2
+    echo "Install them and try again." >&2
+    exit 1
+  fi
+}
+
+# ─── helpers ─────────────────────────────────────────────────────────────────
+
+in_tmux()      { [[ -n "${TMUX:-}" ]]; }
+current_session() { tmux display-message -p '#S' 2>/dev/null; }
+
+# ─── actions ─────────────────────────────────────────────────────────────────
+
+do_attach() {
+  local session="$1"
+  if in_tmux; then
+    tmux switch-client -t "$session"
+  else
+    tmux attach-session -t "$session"
+  fi
+}
+
+do_new() {
+  printf "Enter new session name: "
+  read -r new_name
+  if [[ -z "$new_name" ]]; then
+    echo "No name entered. Aborted."
+    sleep 0.4
+    main
+    return
+  fi
+  if in_tmux; then
+    tmux new-session -d -s "$new_name"
+    tmux switch-client -t "$new_name"
+  else
+    tmux new-session -s "$new_name"
+  fi
+}
+
+do_delete() {
+  local session="$1"
+  if in_tmux && [[ "$session" == "$(current_session)" ]]; then
+    echo "Cannot delete the currently attached session '$session'." >&2
+    sleep 1
+    main
+    return
+  fi
+  printf "Delete session '%s'? [y/N] " "$session"
+  read -r confirm
+  if [[ "$confirm" =~ ^[yY]$ ]]; then
+    tmux kill-session -t "$session"
+    echo "Deleted session: $session"
+  else
+    echo "Cancelled."
+  fi
+  sleep 0.4
+  main
+}
+
+do_detach() {
+  if in_tmux; then
+    tmux detach-client
+  else
+    echo "Not inside a tmux session." >&2
+    sleep 1
+  fi
+}
+
+# ─── main fzf menu ───────────────────────────────────────────────────────────
+
+main() {
+  local action_file
+  action_file="$(mktemp /tmp/tsm_action.XXXXXX)"
+  # ensure cleanup on exit
+  trap 'rm -f "$action_file"' RETURN
+
+  local create_token="[+] Create new session"
+  local header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit'
+
+  local selected
+  selected=$(
+    {
+      tmux list-sessions -F "#{session_name}" 2>/dev/null || true
+      echo "$create_token"
+    } | fzf \
+        --ansi --reverse --no-sort \
+        --prompt="tmux session > " \
+        --header="$header" \
+        --bind "enter:accept" \
+        --bind "space:accept" \
+        --bind "j:down,k:up" \
+        --bind "q:abort,esc:abort" \
+        --bind "d:execute-silent(printf 'delete:%s' {} > '$action_file')+abort" \
+        --bind "backspace:execute-silent(printf 'delete:%s' {} > '$action_file')+abort" \
+        --bind "n:execute-silent(printf 'new' > '$action_file')+abort" \
+        --bind "N:execute-silent(printf 'new' > '$action_file')+abort" \
+        --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
+      || true
+  )
+
+  local action=""
+  [[ -s "$action_file" ]] && action="$(<"$action_file")"
+
+  # resolve action from enter-select on create token
+  [[ "$selected" == "$create_token" ]] && action="new"
+
+  case "$action" in
+    delete:*)  do_delete "${action#delete:}" ;;
+    new)       do_new ;;
+    detach)    do_detach ;;
+    "")
+      # fzf aborted with no action file written (q / ESC) — just exit
+      [[ -z "$selected" ]] && return 0
+      do_attach "$selected"
+      ;;
+  esac
+}
+
+# ─── CLI ─────────────────────────────────────────────────────────────────────
+
+usage() {
+  cat <<EOF
+tsm $VERSION - tmux session manager
+
+Usage: tsm [command]
+
+Commands:
+  (none)       Open interactive session picker
+  new [name]   Create and attach a new session
+  ls           List all sessions
+  version      Show version
+  help         Show this help
+
+Keybindings (inside picker):
+  ↑↓ / j k    Navigate
+  Enter/Space  Attach to session
+  d / ⌫       Delete session
+  n / N        New session
+  E            Detach current client
+  q / ESC      Quit
+EOF
+}
+
+case "${1:-}" in
+  "")       check_deps; main ;;
+  new)
+    check_deps
+    if [[ -n "${2:-}" ]]; then
+      if in_tmux; then
+        tmux new-session -d -s "$2"
+        tmux switch-client -t "$2"
+      else
+        tmux new-session -s "$2"
+      fi
+    else
+      do_new
+    fi
+    ;;
+  ls|list)  tmux list-sessions 2>/dev/null || echo "No tmux sessions." ;;
+  version)  echo "tsm $VERSION" ;;
+  help|-h|--help) usage ;;
+  *)        echo "tsm: unknown command '$1'" >&2; usage >&2; exit 1 ;;
+esac

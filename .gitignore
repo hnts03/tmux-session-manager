@@ -1,0 +1,19 @@
+# Build artifacts
+*.deb
+packaging/debian/usr/
+
+# Claude-specific files
+CLAUDE.md
+.claude/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Shell temp files
+*.tmp
