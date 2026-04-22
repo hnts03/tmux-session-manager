@@ -98,6 +98,15 @@ tsm
 
 Opens an fzf picker with all tmux sessions. Inside tmux it runs `switch-client`; outside it runs `attach-session`.
 
+### Subcommands
+
+```sh
+tsm new [name]   # create and attach a new session (prompts if name omitted)
+tsm ls           # list all sessions
+tsm version      # show version
+tsm help         # show help
+```
+
 ### Keybindings
 
 | Key | Action |
@@ -123,8 +132,8 @@ Opens an fzf picker with all tmux sessions. Inside tmux it runs `switch-client`;
 
 ## Roadmap
 
-- [ ] `tsm new [name]` — create and attach a new session from the CLI
-- [ ] `tsm ls` — list all sessions without opening the picker
+- [x] `tsm new [name]` — create and attach a new session from the CLI
+- [x] `tsm ls` — list all sessions without opening the picker
 - [ ] `tsm kill [name]` — kill a session by name from the CLI
 - [ ] Shell completion (bash / zsh / fish)
 
