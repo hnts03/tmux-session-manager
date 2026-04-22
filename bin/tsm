@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tsm - tmux session manager
 # A lightweight fzf-based tmux session manager
-# https://github.com/choegeon-u/tmux-session-manager
+# https://github.com/hnts03/tmux-session-manager
 
 set -euo pipefail
 
@@ -82,6 +82,23 @@ do_detach() {
   fi
 }
 
+do_kill() {
+  local session="$1"
+  if in_tmux && [[ "$session" == "$(current_session)" ]]; then
+    echo "tsm: cannot kill the currently attached session '$session'." >&2
+    exit 1
+  fi
+  tmux kill-session -t "$session" && echo "Killed session: $session"
+}
+
+pick_kill() {
+  local session
+  session=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | \
+    fzf --ansi --reverse --no-sort --prompt="kill session > ") || return 0
+  [[ -z "$session" ]] && return 0
+  do_kill "$session"
+}
+
 # ─── main fzf menu ───────────────────────────────────────────────────────────
 
 main() {
@@ -144,6 +161,7 @@ Commands:
   (none)       Open interactive session picker
   new [name]   Create and attach a new session
   ls           List all sessions
+  kill [name]  Kill a session (picker if name omitted)
   version      Show version
   help         Show this help
 
@@ -173,6 +191,14 @@ case "${1:-}" in
     fi
     ;;
   ls|list)  tmux list-sessions 2>/dev/null || echo "No tmux sessions." ;;
+  kill)
+    check_deps
+    if [[ -n "${2:-}" ]]; then
+      do_kill "$2"
+    else
+      pick_kill
+    fi
+    ;;
   version)  echo "tsm $VERSION" ;;
   help|-h|--help) usage ;;
   *)        echo "tsm: unknown command '$1'" >&2; usage >&2; exit 1 ;;

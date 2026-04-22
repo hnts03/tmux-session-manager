@@ -103,6 +103,7 @@ Opens an fzf picker with all tmux sessions. Inside tmux it runs `switch-client`;
 ```sh
 tsm new [name]   # create and attach a new session (prompts if name omitted)
 tsm ls           # list all sessions
+tsm kill [name]  # kill a session (opens picker if name omitted)
 tsm version      # show version
 tsm help         # show help
 ```
@@ -134,7 +135,7 @@ tsm help         # show help
 
 - [x] `tsm new [name]` — create and attach a new session from the CLI
 - [x] `tsm ls` — list all sessions without opening the picker
-- [ ] `tsm kill [name]` — kill a session by name from the CLI
+- [x] `tsm kill [name]` — kill a session by name from the CLI
 - [ ] Shell completion (bash / zsh / fish)
 
 ---
