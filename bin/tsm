@@ -99,6 +99,47 @@ pick_kill() {
   do_kill "$session"
 }
 
+tmux_config_path() {
+  if [[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/tmux.conf" ]]; then
+    echo "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/tmux.conf"
+  else
+    echo "$HOME/.tmux.conf"
+  fi
+}
+
+do_config_read() {
+  local config
+  config="$(tmux_config_path)"
+  if [[ ! -f "$config" ]]; then
+    echo "tsm: no tmux config found at $config" >&2
+    exit 1
+  fi
+  echo "# $config"
+  cat "$config"
+}
+
+do_config_reload() {
+  if ! in_tmux; then
+    echo "tsm: must be inside a tmux session to reload config." >&2
+    exit 1
+  fi
+  local config
+  config="$(tmux_config_path)"
+  tmux source-file "$config" && echo "Reloaded: $config"
+}
+
+do_config_edit() {
+  local config
+  config="$(tmux_config_path)"
+  local editor="${VISUAL:-${EDITOR:-vi}}"
+  "$editor" "$config"
+  printf "Reload tmux config now? [y/N] "
+  read -r confirm
+  if [[ "$confirm" =~ ^[yY]$ ]]; then
+    do_config_reload
+  fi
+}
+
 # ─── main fzf menu ───────────────────────────────────────────────────────────
 
 main() {
@@ -158,12 +199,15 @@ tsm $VERSION - tmux session manager
 Usage: tsm [command]
 
 Commands:
-  (none)       Open interactive session picker
-  new [name]   Create and attach a new session
-  ls           List all sessions
-  kill [name]  Kill a session (picker if name omitted)
-  version      Show version
-  help         Show this help
+  (none)            Open interactive session picker
+  new [name]        Create and attach a new session
+  ls                List all sessions
+  kill [name]       Kill a session (picker if name omitted)
+  config [--read]   Read tmux config (default)
+  config --edit     Edit tmux config, prompt to reload after
+  config --reload   Reload tmux config (must be inside tmux)
+  version           Show version
+  help              Show this help
 
 Keybindings (inside picker):
   ↑↓ / j k    Navigate
@@ -198,6 +242,14 @@ case "${1:-}" in
     else
       pick_kill
     fi
+    ;;
+  config)
+    case "${2:---read}" in
+      --read)   do_config_read ;;
+      --edit)   do_config_edit ;;
+      --reload) do_config_reload ;;
+      *) echo "tsm config: unknown option '${2}'" >&2; usage >&2; exit 1 ;;
+    esac
     ;;
   version)  echo "tsm $VERSION" ;;
   help|-h|--help) usage ;;

@@ -101,11 +101,14 @@ Opens an fzf picker with all tmux sessions. Inside tmux it runs `switch-client`;
 ### Subcommands
 
 ```sh
-tsm new [name]   # create and attach a new session (prompts if name omitted)
-tsm ls           # list all sessions
-tsm kill [name]  # kill a session (opens picker if name omitted)
-tsm version      # show version
-tsm help         # show help
+tsm new [name]      # create and attach a new session (prompts if name omitted)
+tsm ls              # list all sessions
+tsm kill [name]     # kill a session (opens picker if name omitted)
+tsm config          # read tmux config (default: --read)
+tsm config --edit   # edit tmux config, prompts to reload after saving
+tsm config --reload # reload tmux config (must be inside tmux)
+tsm version         # show version
+tsm help            # show help
 ```
 
 ### Keybindings
@@ -136,8 +139,9 @@ tsm help         # show help
 - [x] `tsm new [name]` — create and attach a new session from the CLI
 - [x] `tsm ls` — list all sessions without opening the picker
 - [x] `tsm kill [name]` — kill a session by name from the CLI
-- [ ] Shell completion (bash / zsh / fish)
-- [ ] `tsm config` — edit & reload tmux config
+- [x] Shell completion (bash / zsh)
+- [ ] Shell completion (fish)
+- [x] `tsm config` — read / edit / reload tmux config
 
 ---
 
