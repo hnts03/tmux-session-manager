@@ -118,6 +118,40 @@ assert_contains "zsh: defines kill subcommand" "kill" "$zsh_content"
 assert_contains "zsh: defines new subcommand" "new" "$zsh_content"
 assert_contains "zsh: defines ls subcommand" "ls" "$zsh_content"
 
+# ─── fish completion tests ────────────────────────────────────────────────────
+
+echo ""
+echo "[ fish completion ]"
+
+if command -v fish &>/dev/null; then
+  # syntax check
+  fish_syntax=$(fish -n "$COMPLETIONS_DIR/tsm.fish" 2>&1)
+  if [[ -z "$fish_syntax" ]]; then
+    echo "  PASS: tsm.fish syntax valid"
+    ((PASS++))
+  else
+    echo "  FAIL: tsm.fish syntax error: $fish_syntax"
+    ((FAIL++))
+  fi
+
+  # session helper returns sessions
+  fish_sessions=$(fish -c "
+    function tmux; command tmux -L $SOCKET \$argv; end
+    source '$COMPLETIONS_DIR/tsm.fish'
+    __tsm_sessions
+  " 2>/dev/null)
+  assert_contains "fish: sessions include alpha" "alpha" "$fish_sessions"
+  assert_contains "fish: sessions include beta" "beta" "$fish_sessions"
+
+  # subcommand definitions present in file
+  fish_content=$(cat "$COMPLETIONS_DIR/tsm.fish")
+  assert_contains "fish: defines kill" "kill" "$fish_content"
+  assert_contains "fish: defines new" "new" "$fish_content"
+  assert_contains "fish: defines ls" "ls" "$fish_content"
+else
+  echo "  SKIP: fish not installed"
+fi
+
 # ─── summary ─────────────────────────────────────────────────────────────────
 
 echo ""

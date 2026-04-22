@@ -137,6 +137,7 @@ tsm help         # show help
 - [x] `tsm ls` — list all sessions without opening the picker
 - [x] `tsm kill [name]` — kill a session by name from the CLI
 - [ ] Shell completion (bash / zsh / fish)
+- [ ] `tsm config` — edit & reload tmux config
 
 ---
 
