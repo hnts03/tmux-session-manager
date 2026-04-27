@@ -148,11 +148,12 @@ tsm help            # show help
 - [x] `tsm config` — read / edit / reload tmux config
 - [x] `tsm save [name]` — save current session's window/pane layout, cwd, and current command to `~/.config/tsm/sessions/<name>.yaml`
 - [x] `tsm restore [name]` — restore a saved config as a **new** session (fzf picker if name omitted)
-- [ ] Continuous pane output logging — pipe each pane's output to a log file for later inspection / restoration
+- [ ] `tsm log start/stop/status/list/show/clean` — opt-in pane output logging with size cap & rotation
 
 ### Backlog (deferred)
 
 - [ ] `tsm restore --overwrite <name>` — kill all windows/panes of a running session and rebuild from a saved config. Deferred due to destructive nature; needs confirmation flow.
+- [ ] `tsm log auto on/off` — automatic logging via tmux hooks injected into the user's config. Deferred until manual mode + size cap are battle-tested.
 
 ---
 
