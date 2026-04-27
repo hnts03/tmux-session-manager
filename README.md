@@ -142,6 +142,10 @@ tsm help            # show help
 - [x] Shell completion (bash / zsh)
 - [ ] Shell completion (fish)
 - [x] `tsm config` — read / edit / reload tmux config
+- [ ] `tsm save [name]` — save current session's window/pane layout, cwd, and current command to `~/.config/tsm/sessions/<name>.yaml`
+- [ ] `tsm restore [name]` — restore a saved config as a **new** session (fzf picker if name omitted)
+- [ ] `tsm restore --overwrite <name>` — apply a saved config to the current session (TODO)
+- [ ] Continuous pane output logging — pipe each pane's output to a log file for later inspection / restoration
 
 ---
 
