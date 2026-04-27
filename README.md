@@ -148,7 +148,7 @@ tsm help            # show help
 - [x] `tsm config` — read / edit / reload tmux config
 - [x] `tsm save [name]` — save current session's window/pane layout, cwd, and current command to `~/.config/tsm/sessions/<name>.yaml`
 - [x] `tsm restore [name]` — restore a saved config as a **new** session (fzf picker if name omitted)
-- [ ] `tsm log start/stop/status/list/show/clean` — opt-in pane output logging with size cap & rotation
+- [x] `tsm log start/stop/status/list/show/clean` — opt-in pane output logging with size cap & rotation
 
 ### Backlog (deferred)
 
