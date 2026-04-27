@@ -3,7 +3,7 @@ Version: 0.1.1
 Section: utils
 Priority: optional
 Architecture: all
-Depends: tmux, fzf
+Depends: tmux, fzf, yq
 Maintainer: Geonwoo Choi (hnts03) <chlrjsdn0320@gmail.com>
 Description: Lightweight fzf-based tmux session manager
  tsm is a simple interactive tmux session manager powered by fzf.

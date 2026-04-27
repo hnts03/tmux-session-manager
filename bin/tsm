@@ -20,6 +20,17 @@ check_deps() {
   fi
 }
 
+require_yq() {
+  if ! command -v yq &>/dev/null; then
+    echo "tsm: 'yq' is required for save/restore. Install with: brew install yq" >&2
+    exit 1
+  fi
+}
+
+sessions_dir() {
+  echo "${XDG_CONFIG_HOME:-$HOME/.config}/tsm/sessions"
+}
+
 # ─── helpers ─────────────────────────────────────────────────────────────────
 
 in_tmux()      { [[ -n "${TMUX:-}" ]]; }
@@ -140,6 +151,71 @@ do_config_edit() {
   fi
 }
 
+# ─── save / restore ──────────────────────────────────────────────────────────
+
+# YAML-safe single-quoted string: '' is the single-quote escape inside single quotes
+yaml_squote() {
+  local s="$1"
+  printf "'%s'" "${s//\'/\'\'}"
+}
+
+bool_from_flag() {
+  [[ "$1" == "1" ]] && echo "true" || echo "false"
+}
+
+do_save() {
+  local target="${1:-}"
+
+  if [[ -z "$target" ]]; then
+    if ! in_tmux; then
+      echo "tsm save: must be inside tmux or pass a session name." >&2
+      exit 1
+    fi
+    target="$(current_session)"
+  fi
+
+  if ! tmux has-session -t "$target" 2>/dev/null; then
+    echo "tsm save: session '$target' not found." >&2
+    exit 1
+  fi
+
+  local dir
+  dir="$(sessions_dir)"
+  mkdir -p "$dir"
+  local out="$dir/$target.yaml"
+
+  {
+    printf "name: %s\n" "$(yaml_squote "$target")"
+    printf "created_at: %s\n" "$(yaml_squote "$(date -u +%Y-%m-%dT%H:%M:%SZ)")"
+    printf "windows:\n"
+
+    local windows
+    windows=$(tmux list-windows -t "$target" \
+      -F '#{window_index}|#{window_name}|#{window_active}|#{window_layout}')
+
+    while IFS='|' read -r w_idx w_name w_active w_layout; do
+      printf "  - index: %s\n" "$w_idx"
+      printf "    name: %s\n" "$(yaml_squote "$w_name")"
+      printf "    active: %s\n" "$(bool_from_flag "$w_active")"
+      printf "    layout: %s\n" "$(yaml_squote "$w_layout")"
+      printf "    panes:\n"
+
+      local panes
+      panes=$(tmux list-panes -t "$target:$w_idx" \
+        -F '#{pane_index}|#{pane_active}|#{pane_current_path}|#{pane_current_command}')
+
+      while IFS='|' read -r p_idx p_active p_cwd p_cmd; do
+        printf "      - index: %s\n" "$p_idx"
+        printf "        active: %s\n" "$(bool_from_flag "$p_active")"
+        printf "        cwd: %s\n" "$(yaml_squote "$p_cwd")"
+        printf "        command: %s\n" "$(yaml_squote "$p_cmd")"
+      done <<< "$panes"
+    done <<< "$windows"
+  } > "$out"
+
+  echo "Saved: $out"
+}
+
 # ─── main fzf menu ───────────────────────────────────────────────────────────
 
 main() {
@@ -206,6 +282,8 @@ Commands:
   config [--read]   Read tmux config (default)
   config --edit     Edit tmux config, prompt to reload after
   config --reload   Reload tmux config (must be inside tmux)
+  save [name]       Save session layout to ~/.config/tsm/sessions/<name>.yaml
+                    (uses current session if name omitted)
   version           Show version
   help              Show this help
 
@@ -250,6 +328,10 @@ case "${1:-}" in
       --reload) do_config_reload ;;
       *) echo "tsm config: unknown option '${2}'" >&2; usage >&2; exit 1 ;;
     esac
+    ;;
+  save)
+    check_deps
+    do_save "${2:-}"
     ;;
   version)  echo "tsm $VERSION" ;;
   help|-h|--help) usage ;;

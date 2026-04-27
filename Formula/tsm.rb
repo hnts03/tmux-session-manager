@@ -19,6 +19,7 @@ class Tsm < Formula
 
   depends_on "fzf"
   depends_on "tmux"
+  depends_on "yq"
 
   def install
     bin.install "bin/tsm"
