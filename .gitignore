@@ -17,3 +17,6 @@ CLAUDE.md
 
 # Shell temp files
 *.tmp
+
+# Local test scripts
+test/run.sh
