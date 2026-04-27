@@ -107,6 +107,10 @@ tsm kill [name]     # kill a session (opens picker if name omitted)
 tsm config          # read tmux config (default: --read)
 tsm config --edit   # edit tmux config, prompts to reload after saving
 tsm config --reload # reload tmux config (must be inside tmux)
+tsm save [name]     # save session to ~/.config/tsm/sessions/<name>.yaml
+                    # (uses current attached session if name omitted)
+tsm restore [name]  # restore a saved session as a new session
+                    # (opens picker if name omitted)
 tsm version         # show version
 tsm help            # show help
 ```
@@ -142,8 +146,8 @@ tsm help            # show help
 - [x] Shell completion (bash / zsh)
 - [ ] Shell completion (fish)
 - [x] `tsm config` — read / edit / reload tmux config
-- [ ] `tsm save [name]` — save current session's window/pane layout, cwd, and current command to `~/.config/tsm/sessions/<name>.yaml`
-- [ ] `tsm restore [name]` — restore a saved config as a **new** session (fzf picker if name omitted)
+- [x] `tsm save [name]` — save current session's window/pane layout, cwd, and current command to `~/.config/tsm/sessions/<name>.yaml`
+- [x] `tsm restore [name]` — restore a saved config as a **new** session (fzf picker if name omitted)
 - [ ] `tsm restore --overwrite <name>` — apply a saved config to the current session (TODO)
 - [ ] Continuous pane output logging — pipe each pane's output to a log file for later inspection / restoration
 

@@ -163,6 +163,95 @@ bool_from_flag() {
   [[ "$1" == "1" ]] && echo "true" || echo "false"
 }
 
+pick_config() {
+  local dir
+  dir="$(sessions_dir)"
+  if [[ ! -d "$dir" ]]; then
+    echo "tsm restore: no saved configs (directory $dir does not exist)." >&2
+    return 1
+  fi
+  local configs
+  configs=$(find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null \
+    | sed -e 's|.*/||' -e 's|\.yaml$||')
+  if [[ -z "$configs" ]]; then
+    echo "tsm restore: no saved configs in $dir." >&2
+    return 1
+  fi
+  local picked
+  picked=$(echo "$configs" | fzf --ansi --reverse --no-sort \
+    --prompt="restore session > ") || return 1
+  [[ -z "$picked" ]] && return 1
+  echo "$picked"
+}
+
+do_restore() {
+  local name="${1:-}"
+  if [[ -z "$name" ]]; then
+    name="$(pick_config)" || return 0
+  fi
+
+  local file
+  file="$(sessions_dir)/$name.yaml"
+  if [[ ! -f "$file" ]]; then
+    echo "tsm restore: config not found: $file" >&2
+    exit 1
+  fi
+
+  require_yq
+
+  local session
+  session=$(yq -r '.name' "$file")
+
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tsm restore: session '$session' already exists." >&2
+    echo "Overwrite is not yet supported — kill it first or rename the config." >&2
+    exit 1
+  fi
+
+  local windows_data
+  windows_data=$(yq -r '.windows | to_entries[] | "\(.key)|\(.value.name)|\(.value.layout)|\(.value.active)"' "$file")
+
+  local first=true
+  local active_window=""
+
+  while IFS='|' read -r wi w_name w_layout w_active; do
+    local n_panes first_cwd
+    n_panes=$(yq -r ".windows[$wi].panes | length" "$file")
+    first_cwd=$(yq -r ".windows[$wi].panes[0].cwd" "$file")
+
+    if $first; then
+      tmux new-session -d -s "$session" -n "$w_name" -c "$first_cwd"
+      first=false
+    else
+      tmux new-window -t "$session" -n "$w_name" -c "$first_cwd"
+    fi
+
+    local current_idx
+    current_idx=$(tmux display-message -t "$session:" -p '#{window_index}')
+
+    local pi
+    for ((pi=1; pi<n_panes; pi++)); do
+      local p_cwd
+      p_cwd=$(yq -r ".windows[$wi].panes[$pi].cwd" "$file")
+      tmux split-window -t "$session:$current_idx" -c "$p_cwd"
+    done
+
+    tmux select-layout -t "$session:$current_idx" "$w_layout" 2>/dev/null \
+      || echo "tsm restore: warning — failed to apply layout for window '$w_name'" >&2
+
+    [[ "$w_active" == "true" ]] && active_window="$current_idx"
+  done <<< "$windows_data"
+
+  [[ -n "$active_window" ]] && tmux select-window -t "$session:$active_window"
+
+  echo "Restored: $session"
+  if in_tmux; then
+    tmux switch-client -t "$session"
+  else
+    tmux attach-session -t "$session"
+  fi
+}
+
 do_save() {
   local target="${1:-}"
 
@@ -284,6 +373,8 @@ Commands:
   config --reload   Reload tmux config (must be inside tmux)
   save [name]       Save session layout to ~/.config/tsm/sessions/<name>.yaml
                     (uses current session if name omitted)
+  restore [name]    Restore a saved session as a new session
+                    (fzf picker if name omitted)
   version           Show version
   help              Show this help
 
@@ -332,6 +423,10 @@ case "${1:-}" in
   save)
     check_deps
     do_save "${2:-}"
+    ;;
+  restore)
+    check_deps
+    do_restore "${2:-}"
     ;;
   version)  echo "tsm $VERSION" ;;
   help|-h|--help) usage ;;
