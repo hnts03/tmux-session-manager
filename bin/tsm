@@ -152,8 +152,12 @@ do_config_read() {
     echo "tsm: no tmux config found at $config" >&2
     exit 1
   fi
-  echo "# $config"
-  cat "$config"
+  local editor="${VISUAL:-${EDITOR:-vi}}"
+  case "$(basename "$editor")" in
+    vi|vim|nvim) "$editor" -R "$config" ;;
+    nano)        "$editor" -v "$config" ;;
+    *)           "$editor" "$config" ;;
+  esac
 }
 
 do_config_reload() {
