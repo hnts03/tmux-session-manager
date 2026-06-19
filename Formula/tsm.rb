@@ -13,7 +13,7 @@ class Tsm < Formula
 
   # Update sha256 after GitHub release
   url "https://github.com/hnts03/tmux-session-manager/archive/refs/tags/v#{version}.tar.gz"
-  sha256 "PLACEHOLDER"
+  sha256 "5a25efd53f9fc61b70b2ad017c70056d384545951ddd1dd6bbc02e68d1a7d206"
 
   license "MIT"
 
