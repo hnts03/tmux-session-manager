@@ -7,6 +7,42 @@ _tsm_sessions() {
   _describe 'session' sessions
 }
 
+_tsm_saved_configs() {
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/sessions"
+  local configs
+  configs=(${(f)"$(find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||')"})
+  _describe 'saved config' configs
+}
+
+_tsm_log() {
+  local state
+  _arguments \
+    '1: :->action' \
+    '*: :->args'
+  case $state in
+    action)
+      local actions
+      actions=(
+        'start:start logging pane output'
+        'stop:stop logging'
+        'status:show panes being logged'
+        'list:list log files'
+        'show:view log via pager'
+        'tail:follow log in real time'
+        'clean:delete log files'
+        'help:show log help'
+      )
+      _describe 'action' actions
+      ;;
+    args)
+      case $words[2] in
+        show|tail) _arguments '--plain[strip ANSI escapes]' ;;
+        clean)     _arguments '--all[clean all sessions]' ;;
+      esac
+      ;;
+  esac
+}
+
 _tsm() {
   local state
 
@@ -20,7 +56,12 @@ _tsm() {
       subcommands=(
         'new:create and attach a new session'
         'ls:list all sessions'
-        'kill:kill a session by name'
+        'kill:kill a session'
+        'rename:rename a session'
+        'config:read/edit/reload tmux config'
+        'save:save session layout'
+        'restore:restore a saved session'
+        'log:pane output logging'
         'version:show version'
         'help:show help'
       )
@@ -28,7 +69,32 @@ _tsm() {
       ;;
     args)
       case $words[2] in
-        kill) _tsm_sessions ;;
+        kill)
+          _arguments '--all[multi-select kill]'
+          _tsm_sessions
+          ;;
+        rename)
+          _tsm_sessions
+          ;;
+        config)
+          _arguments \
+            '--read[read tmux config (default)]' \
+            '--edit[edit tmux config]' \
+            '--reload[reload tmux config]'
+          ;;
+        save)
+          _arguments \
+            '--list[list saved configs]' \
+            '--delete[delete a saved config]'
+          _tsm_sessions
+          ;;
+        restore)
+          _arguments '--with-commands[re-run saved commands]'
+          _tsm_saved_configs
+          ;;
+        log)
+          _tsm_log
+          ;;
       esac
       ;;
   esac

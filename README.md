@@ -11,12 +11,13 @@
 ```
 $ tsm
 
-  work
-  dotfiles
-  [+] Create new session
+  work                             │   1: editor  (2 panes)
+  dotfiles                         │   2: server  (1 pane)
+  [+] Create new session           │
 ──────────────────────────────────────────────────────
   tmux session > _
   ↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit
+  r:rename  s:save  R:restore-saved
 ```
 
 ---
@@ -40,8 +41,8 @@ brew install tsm
 ### apt (Debian / Ubuntu)
 
 ```sh
-wget https://github.com/hnts03/tmux-session-manager/releases/latest/download/tsm_0.1.0_all.deb
-sudo apt install ./tsm_0.1.0_all.deb
+wget https://github.com/hnts03/tmux-session-manager/releases/latest/download/tsm_0.3.0_all.deb
+sudo apt install ./tsm_0.3.0_all.deb
 ```
 
 ### Manual (curl)
@@ -104,13 +105,18 @@ Opens an fzf picker with all tmux sessions. Inside tmux it runs `switch-client`;
 tsm new [name]      # create and attach a new session (prompts if name omitted)
 tsm ls              # list all sessions
 tsm kill [name]     # kill a session (opens picker if name omitted)
+tsm kill --all      # kill multiple sessions (fzf multi-select, TAB to select)
+tsm rename <old> <new>  # rename a session
 tsm config          # read tmux config (default: --read)
 tsm config --edit   # edit tmux config, prompts to reload after saving
 tsm config --reload # reload tmux config (must be inside tmux)
 tsm save [name]     # save session to ~/.config/tsm/sessions/<name>.yaml
                     # (uses current attached session if name omitted)
-tsm restore [name]  # restore a saved session as a new session
-                    # (opens picker if name omitted)
+tsm save --list     # list saved configs with metadata (date, windows, panes)
+tsm save --delete [name]  # delete a saved config (fzf picker if name omitted)
+tsm restore [name]                 # restore a saved session (layout only)
+tsm restore --with-commands [name] # restore layout + re-run saved commands
+                                   # (skips shells: bash zsh sh fish dash tmux)
 tsm version         # show version
 tsm help            # show help
 ```
@@ -123,8 +129,32 @@ tsm help            # show help
 | `Enter` / `Space` | Attach to selected session |
 | `d` / `Backspace` | Delete selected session |
 | `n` / `N` | Create new session |
+| `r` | Rename selected session |
+| `s` | Save selected session layout |
+| `R` | Restore a saved session (opens picker) |
 | `E` | Detach current tmux client |
 | `q` / `ESC` | Quit |
+
+---
+
+## Configuration
+
+Create `~/.config/tsm/config.yaml` to set persistent defaults (requires `yq`):
+
+```yaml
+log_max_bytes: 10485760          # 10 MB (default)
+sessions_dir: ~/.config/tsm/sessions
+logs_dir: ~/.local/share/tsm/logs
+restore_skip_commands:           # commands NOT re-run by --with-commands
+  - bash
+  - zsh
+  - sh
+  - fish
+  - dash
+  - tmux
+```
+
+Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `TSM_SESSIONS_DIR`, `TSM_LOGS_DIR`.
 
 ---
 
@@ -142,13 +172,16 @@ tsm help            # show help
 
 - [x] `tsm new [name]` — create and attach a new session from the CLI
 - [x] `tsm ls` — list all sessions without opening the picker
-- [x] `tsm kill [name]` — kill a session by name from the CLI
-- [x] Shell completion (bash / zsh)
-- [ ] Shell completion (fish)
+- [x] `tsm kill [name]` / `tsm kill --all` — kill one or multiple sessions
+- [x] `tsm rename <old> <new>` — rename a session from the CLI
 - [x] `tsm config` — read / edit / reload tmux config
-- [x] `tsm save [name]` — save current session's window/pane layout, cwd, and current command to `~/.config/tsm/sessions/<name>.yaml`
-- [x] `tsm restore [name]` — restore a saved config as a **new** session (fzf picker if name omitted)
-- [x] `tsm log start/stop/status/list/show/clean` — opt-in pane output logging with size cap & rotation
+- [x] `tsm save [name]` / `tsm save --list` / `tsm save --delete` — save and manage session layouts
+- [x] `tsm restore [name]` / `tsm restore --with-commands` — restore a saved session (layout-only or with commands)
+- [x] `tsm log start/stop/status/list/show/tail/clean` — opt-in pane output logging with size cap & rotation
+- [x] Shell completions (bash, zsh, fish)
+- [x] Picker: `r` rename, `s` save, `R` restore-saved, fzf preview pane showing windows/panes
+- [x] `~/.config/tsm/config.yaml` — persistent config file (log path, max bytes, skip commands, etc.)
+- [x] `tsm new` name conflict handling — offer to attach if session already exists
 
 ### Backlog (deferred)
 
