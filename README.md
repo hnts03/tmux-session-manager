@@ -208,7 +208,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] `tsm log start --timestamp` — prepend timestamps to each logged line
 
 **Robustness**
-- [ ] `tsm restore` layout fallback — apply `even-horizontal` if saved layout string fails (terminal size mismatch)
+- [x] `tsm restore` layout fallback — apply `even-horizontal` if saved layout string fails (terminal size mismatch)
 
 ---
 

@@ -396,7 +396,8 @@ do_restore() {
     done
 
     tmux select-layout -t "$session:$current_idx" "$w_layout" 2>/dev/null \
-      || echo "tsm restore: warning — failed to apply layout for window '$w_name'" >&2
+      || { tmux select-layout -t "$session:$current_idx" even-horizontal 2>/dev/null
+           echo "tsm restore: warning — layout mismatch for window '$w_name'; applied even-horizontal" >&2; }
 
     if $with_commands; then
       for ((pi=0; pi<n_panes; pi++)); do
