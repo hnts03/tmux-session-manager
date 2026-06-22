@@ -582,6 +582,41 @@ do_log_tail() {
   fi
 }
 
+do_log_grep() {
+  local pattern="" target="" plain=false
+  for a in "$@"; do
+    case "$a" in
+      --plain) plain=true ;;
+      *)
+        if [[ -z "$pattern" ]]; then
+          pattern="$a"
+        elif [[ -z "$target" ]]; then
+          target="$a"
+        fi
+        ;;
+    esac
+  done
+
+  if [[ -z "$pattern" ]]; then
+    echo "Usage: tsm log grep [--plain] <pattern> [target]" >&2
+    exit 1
+  fi
+
+  local resolved
+  resolved=$(resolve_pane_target "$target") || exit 1
+  local file
+  file=$(log_file_for "$resolved") || exit 1
+  if [[ ! -f "$file" ]]; then
+    echo "tsm log grep: no log file for $resolved ($file)" >&2
+    exit 1
+  fi
+  if $plain; then
+    sed -E $'s/\x1b\\[[0-9;?]*[a-zA-Z]//g; s/\x1b\\][^\x07]*\x07//g' "$file" | grep -- "$pattern"
+  else
+    grep -- "$pattern" "$file"
+  fi
+}
+
 do_log_clean() {
   local arg="${1:-}"
   local dir
@@ -944,6 +979,7 @@ case "${1:-}" in
       list)    do_log_list "${3:-}" ;;
       show)    check_deps; shift 2; do_log_show "$@" ;;
       tail)    check_deps; shift 2; do_log_tail "$@" ;;
+      grep)    check_deps; shift 2; do_log_grep "$@" ;;
       clean)   do_log_clean "${3:-}" ;;
       __write) do_log_write "${3:-}" "${4:-}" ;;
       help|"")
@@ -959,6 +995,8 @@ Actions:
                          View log via \$PAGER (--plain strips ANSI escapes)
   tail  [target] [--plain]
                          Follow log in real time (like tail -f)
+  grep  [--plain] <pattern> [target]
+                         Search within log file (--plain strips ANSI before matching)
   clean [session|--all]  Delete log files
 
 Default target: current pane.

@@ -29,6 +29,7 @@ _tsm_log() {
         'list:list log files'
         'show:view log via pager'
         'tail:follow log in real time'
+        'grep:search within log file'
         'clean:delete log files'
         'help:show log help'
       )
@@ -36,7 +37,7 @@ _tsm_log() {
       ;;
     args)
       case $words[2] in
-        show|tail) _arguments '--plain[strip ANSI escapes]' ;;
+        show|tail|grep) _arguments '--plain[strip ANSI escapes]' ;;
         clean)     _arguments '--all[clean all sessions]' ;;
       esac
       ;;

@@ -49,9 +49,9 @@ _tsm_completion() {
       fi
       ;;
     log)
-      COMPREPLY=($(compgen -W "start stop status list show tail clean help" -- "$cur"))
+      COMPREPLY=($(compgen -W "start stop status list show tail grep clean help" -- "$cur"))
       ;;
-    show|tail)
+    show|tail|grep)
       COMPREPLY=($(compgen -W "--plain" -- "$cur"))
       ;;
     clean)

@@ -118,6 +118,8 @@ tsm save --delete [name]  # delete a saved config (fzf picker if name omitted)
 tsm restore [name]                 # restore a saved session (layout only)
 tsm restore --with-commands [name] # restore layout + re-run saved commands
                                    # (skips shells: bash zsh sh fish dash tmux)
+tsm log grep <pattern> [target]    # search within log file (default: current pane)
+tsm log grep --plain <pattern>     # strip ANSI escapes before matching
 tsm version         # show version
 tsm help            # show help
 ```
@@ -202,7 +204,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] `l` key in picker — toggle pane logging for the selected session's active pane
 
 **New subcommands**
-- [ ] `tsm log grep <pattern> [target]` — search within log files
+- [x] `tsm log grep <pattern> [target]` — search within log files
 - [ ] `tsm log start --timestamp` — prepend timestamps to each logged line
 
 **Robustness**

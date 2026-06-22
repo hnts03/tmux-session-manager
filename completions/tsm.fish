@@ -49,15 +49,16 @@ complete -c tsm -n "__fish_seen_subcommand_from restore" -a "(__tsm_saved_config
 complete -c tsm -n "__fish_seen_subcommand_from restore" -l with-commands -d "Re-run saved commands on restore"
 
 # log: actions
-set -l log_actions start stop status list show tail clean help
+set -l log_actions start stop status list show tail grep clean help
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a start  -d "Start logging pane output"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a stop   -d "Stop logging"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a status -d "Show panes being logged"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a list   -d "List log files"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a show   -d "View log via pager"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a tail   -d "Follow log in real time"
+complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a grep   -d "Search within log file"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a clean  -d "Delete log files"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a help   -d "Show log help"
 
-# log show/tail: --plain flag
-complete -c tsm -n "__fish_seen_subcommand_from log; and __fish_seen_subcommand_from show tail" -l plain -d "Strip ANSI escapes"
+# log show/tail/grep: --plain flag
+complete -c tsm -n "__fish_seen_subcommand_from log; and __fish_seen_subcommand_from show tail grep" -l plain -d "Strip ANSI escapes"
