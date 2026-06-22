@@ -193,7 +193,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 
 **Config & UX polish**
 - [x] `tsm config --tsm` — open tsm's own config file (`~/.config/tsm/config.yaml`) in editor
-- [ ] `tsm save --update` — prompt before overwriting an existing saved config
+- [x] `tsm save --update` — prompt before overwriting an existing saved config
 - [ ] `tsm save --list` — show indicator when a saved config's session is currently running
 
 **Picker improvements**

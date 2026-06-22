@@ -34,14 +34,16 @@ require_yq() {
   fi
 }
 
-sessions_dir() { echo "$_TSM_SESSIONS_DIR"; }
-logs_dir()     { echo "$_TSM_LOGS_DIR"; }
+sessions_dir()       { echo "$_TSM_SESSIONS_DIR"; }
+logs_dir()           { echo "$_TSM_LOGS_DIR"; }
+tsm_self_config_path() { echo "${XDG_CONFIG_HOME:-$HOME/.config}/tsm/config.yaml"; }
 
 # Sanitize a session name for use as a config filename (replace / with _)
 config_name_for() { printf '%s' "${1//\//_}"; }
 
 load_config() {
-  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/config.yaml"
+  local config_file
+  config_file="$(tsm_self_config_path)"
   [[ ! -f "$config_file" ]] && return 0
   if ! command -v yq &>/dev/null; then
     echo "tsm: config file found at $config_file but 'yq' is required to read it." >&2
@@ -258,7 +260,8 @@ do_config_edit() {
 }
 
 do_config_tsm() {
-  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/config.yaml"
+  local config_file
+  config_file="$(tsm_self_config_path)"
   if [[ ! -f "$config_file" ]]; then
     mkdir -p "$(dirname "$config_file")"
     cat > "$config_file" <<'EOF'
@@ -461,6 +464,9 @@ do_log_start() {
   local self="${TSM_SELF:-$0}"
   local max="${TSM_LOG_MAX_BYTES:-$_TSM_LOG_MAX_BYTES}"
 
+  local self_q
+  printf -v self_q '%q' "$self"
+
   local panes
   panes=$(_panes_for_target "$arg") || exit 1
 
@@ -469,8 +475,7 @@ do_log_start() {
     local file
     file=$(log_file_for "$p") || continue
     mkdir -p "$(dirname "$file")"
-    local self_q file_q
-    printf -v self_q '%q' "$self"
+    local file_q
     printf -v file_q '%q' "$file"
     # close any existing pipe first to avoid double-piping
     tmux pipe-pane -t "$p"
@@ -670,6 +675,19 @@ do_save() {
   dir="$(sessions_dir)"
   mkdir -p "$dir"
   local out="$dir/$(config_name_for "$target").yaml"
+
+  if [[ -f "$out" ]]; then
+    local stored_name=""
+    command -v yq &>/dev/null && stored_name=$(yq -r '.name // ""' "$out" 2>/dev/null)
+    if [[ -n "$stored_name" && "$stored_name" != "$target" ]]; then
+      printf "Config '%s' belongs to session '%s'. Overwrite with '%s'? [y/N] " \
+        "$(basename "$out" .yaml)" "$stored_name" "$target"
+    else
+      printf "Config '%s' already exists. Overwrite? [y/N] " "$(basename "$out" .yaml)"
+    fi
+    read -r confirm
+    [[ ! "$confirm" =~ ^[yY]$ ]] && { echo "Cancelled."; return 0; }
+  fi
 
   {
     printf "name: %s\n" "$(yaml_squote "$target")"
