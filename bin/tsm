@@ -105,9 +105,9 @@ current_session() { tmux display-message -p '#S' 2>/dev/null; }
 do_attach() {
   local session="$1"
   if in_tmux; then
-    tmux switch-client -t "$session"
+    tmux switch-client -t "=$session"
   else
-    tmux attach-session -t "$session"
+    tmux attach-session -t "=$session"
   fi
 }
 
@@ -133,7 +133,7 @@ do_new() {
   fi
   if in_tmux; then
     tmux new-session -d -s "$new_name"
-    tmux switch-client -t "$new_name"
+    tmux switch-client -t "=$new_name"
   else
     tmux new-session -s "$new_name"
   fi
@@ -150,7 +150,7 @@ do_delete() {
   printf "Delete session '%s'? [y/N] " "$session"
   read -r confirm
   if [[ "$confirm" =~ ^[yY]$ ]]; then
-    tmux kill-session -t "$session"
+    tmux kill-session -t "=$session"
     echo "Deleted session: $session"
   else
     echo "Cancelled."
@@ -178,7 +178,7 @@ do_rename() {
     main
     return
   fi
-  tmux rename-session -t "$old_name" "$new_name" && echo "Renamed '$old_name' → '$new_name'"
+  tmux rename-session -t "=$old_name" "$new_name" && echo "Renamed '$old_name' → '$new_name'"
   sleep 0.4
   main
 }
@@ -189,7 +189,7 @@ do_kill() {
     echo "tsm: cannot kill the currently attached session '$session'." >&2
     exit 1
   fi
-  tmux kill-session -t "$session" && echo "Killed session: $session"
+  tmux kill-session -t "=$session" && echo "Killed session: $session"
 }
 
 pick_kill() {
@@ -210,7 +210,7 @@ pick_kill_multi() {
       echo "tsm: skipping current session '$session'" >&2
       continue
     fi
-    tmux kill-session -t "$session" && echo "Killed session: $session"
+    tmux kill-session -t "=$session" && echo "Killed session: $session"
   done <<< "$sessions"
 }
 
@@ -322,7 +322,7 @@ pick_config() {
   local picked
   picked=$(echo "$configs" | fzf --ansi --reverse --no-sort \
     --prompt="restore session > " \
-    --preview="yq -r '.windows[] | \"  \(.index): \(.name)  (\(.panes|length) pane(s))\"' ${dir_q}/{}.yaml 2>/dev/null || cat ${dir_q}/{}.yaml 2>/dev/null" \
+    --preview="yq -r '.windows[] | \"  \(.index): \(.name)  (\(.panes|length) pane(s))\"' ${dir_q}/{}.yaml 2>/dev/null | grep . || cat ${dir_q}/{}.yaml 2>/dev/null" \
     --preview-window='right:40%:wrap') || return 1
   [[ -z "$picked" ]] && return 1
   echo "$picked"
@@ -415,9 +415,9 @@ do_restore() {
 
   echo "Restored: $session"
   if in_tmux; then
-    tmux switch-client -t "$session"
+    tmux switch-client -t "=$session"
   else
-    tmux attach-session -t "$session"
+    tmux attach-session -t "=$session"
   fi
 }
 
@@ -869,7 +869,7 @@ case "${1:-}" in
         do_attach "$2"
       elif in_tmux; then
         tmux new-session -d -s "$2"
-        tmux switch-client -t "$2"
+        tmux switch-client -t "=$2"
       else
         tmux new-session -s "$2"
       fi
@@ -883,7 +883,7 @@ case "${1:-}" in
     if [[ -z "${2:-}" ]] || [[ -z "${3:-}" ]]; then
       echo "Usage: tsm rename <old-name> <new-name>" >&2; exit 1
     fi
-    tmux rename-session -t "$2" "$3" && echo "Renamed '$2' → '$3'"
+    tmux rename-session -t "=$2" "$3" && echo "Renamed '$2' → '$3'"
     ;;
   kill)
     check_deps

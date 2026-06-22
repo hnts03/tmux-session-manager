@@ -24,7 +24,7 @@ $ tsm
 
 ## Requirements
 
-- [tmux](https://github.com/tmux/tmux) ≥ 2.x
+- [tmux](https://github.com/tmux/tmux) ≥ 2.8
 - [fzf](https://github.com/junegunn/fzf)
 
 ---
