@@ -188,6 +188,24 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [ ] `tsm restore --overwrite <name>` — kill all windows/panes of a running session and rebuild from a saved config. Deferred due to destructive nature; needs confirmation flow.
 - [ ] `tsm log auto on/off` — automatic logging via tmux hooks injected into the user's config. Deferred until manual mode + size cap are battle-tested.
 
+### Future Works
+
+**Config & UX polish**
+- [ ] `tsm config --tsm` — open tsm's own config file (`~/.config/tsm/config.yaml`) in editor
+- [ ] `tsm save --update` — prompt before overwriting an existing saved config
+- [ ] `tsm save --list` — show indicator when a saved config's session is currently running
+
+**Picker improvements**
+- [ ] `tsm restore` picker: fzf preview pane showing saved windows/pane layout
+- [ ] `l` key in picker — toggle pane logging for the selected session's active pane
+
+**New subcommands**
+- [ ] `tsm log grep <pattern> [target]` — search within log files
+- [ ] `tsm log start --timestamp` — prepend timestamps to each logged line
+
+**Robustness**
+- [ ] `tsm restore` layout fallback — apply `even-horizontal` if saved layout string fails (terminal size mismatch)
+
 ---
 
 ## License
