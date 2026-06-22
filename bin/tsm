@@ -472,7 +472,7 @@ do_log_start() {
   printf -v self_q '%q' "$self"
 
   local panes
-  panes=$(_panes_for_target "$arg") || exit 1
+  panes=$(_panes_for_target "$arg") || return 1
 
   while read -r p; do
     [[ -z "$p" ]] && continue
@@ -491,7 +491,7 @@ do_log_start() {
 do_log_stop() {
   local arg="${1:-}"
   local panes
-  panes=$(_panes_for_target "$arg") || exit 1
+  panes=$(_panes_for_target "$arg") || return 1
   while read -r p; do
     [[ -z "$p" ]] && continue
     tmux pipe-pane -t "$p"
@@ -804,13 +804,13 @@ main() {
     log-toggle:*)
       local target="${action#log-toggle:}"
       [[ "$target" == "$create_token" ]] && { main; return; }
-      local pane_target
-      pane_target=$(tmux display-message -t "=$target" \
-        -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null) || {
+      local combined
+      combined=$(tmux display-message -t "=$target" \
+        -p '#{session_name}:#{window_index}.#{pane_index}|#{pane_pipe}' 2>/dev/null) || {
         echo "Session '$target' is not running." >&2; sleep 1; main; return
       }
-      local is_piped
-      is_piped=$(tmux display-message -t "$pane_target" -p '#{pane_pipe}' 2>/dev/null) || is_piped="0"
+      local pane_target="${combined%|*}"
+      local is_piped="${combined##*|}"
       if [[ "$is_piped" == "1" ]]; then
         do_log_stop "$pane_target"
       else
@@ -866,6 +866,7 @@ Keybindings (inside picker):
   r            Rename selected session
   s            Save selected session layout
   R            Restore a saved session (opens picker)
+  l            Toggle pane logging for the selected session's active pane
   E            Detach current client
   q / ESC      Quit
 EOF
