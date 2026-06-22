@@ -110,6 +110,7 @@ tsm rename <old> <new>  # rename a session
 tsm config          # read tmux config (default: --read)
 tsm config --edit   # edit tmux config, prompts to reload after saving
 tsm config --reload # reload tmux config (must be inside tmux)
+tsm config --tsm    # edit tsm's own config (~/.config/tsm/config.yaml)
 tsm save [name]     # save session to ~/.config/tsm/sessions/<name>.yaml
                     # (uses current attached session if name omitted)
 tsm save --list     # list saved configs with metadata (date, windows, panes)
@@ -191,7 +192,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 ### Future Works
 
 **Config & UX polish**
-- [ ] `tsm config --tsm` — open tsm's own config file (`~/.config/tsm/config.yaml`) in editor
+- [x] `tsm config --tsm` — open tsm's own config file (`~/.config/tsm/config.yaml`) in editor
 - [ ] `tsm save --update` — prompt before overwriting an existing saved config
 - [ ] `tsm save --list` — show indicator when a saved config's session is currently running
 

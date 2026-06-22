@@ -37,6 +37,7 @@ complete -c tsm -n "__fish_seen_subcommand_from rename" -a "(__tsm_sessions)"
 complete -c tsm -n "__fish_seen_subcommand_from config" -l read   -d "Read tmux config (default)"
 complete -c tsm -n "__fish_seen_subcommand_from config" -l edit   -d "Edit tmux config"
 complete -c tsm -n "__fish_seen_subcommand_from config" -l reload -d "Reload tmux config"
+complete -c tsm -n "__fish_seen_subcommand_from config" -l tsm    -d "Edit tsm config"
 
 # save: session names + flags
 complete -c tsm -n "__fish_seen_subcommand_from save" -a "(__tsm_sessions)"

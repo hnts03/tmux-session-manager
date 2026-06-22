@@ -80,7 +80,8 @@ _tsm() {
           _arguments \
             '--read[read tmux config (default)]' \
             '--edit[edit tmux config]' \
-            '--reload[reload tmux config]'
+            '--reload[reload tmux config]' \
+            '--tsm[edit tsm config]'
           ;;
         save)
           _arguments \

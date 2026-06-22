@@ -29,7 +29,7 @@ _tsm_completion() {
       COMPREPLY=($(compgen -W "$(_tsm_sessions)" -- "$cur"))
       ;;
     config)
-      COMPREPLY=($(compgen -W "--read --edit --reload" -- "$cur"))
+      COMPREPLY=($(compgen -W "--read --edit --reload --tsm" -- "$cur"))
       ;;
     save)
       COMPREPLY=($(compgen -W "--list --delete $(_tsm_sessions)" -- "$cur"))

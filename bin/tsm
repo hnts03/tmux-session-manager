@@ -257,6 +257,29 @@ do_config_edit() {
   fi
 }
 
+do_config_tsm() {
+  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/config.yaml"
+  if [[ ! -f "$config_file" ]]; then
+    mkdir -p "$(dirname "$config_file")"
+    cat > "$config_file" <<'EOF'
+# tsm configuration — uncomment and edit values to override defaults.
+# log_max_bytes: 10485760          # 10 MB
+# sessions_dir: ~/.config/tsm/sessions
+# logs_dir: ~/.local/share/tsm/logs
+# restore_skip_commands:
+#   - bash
+#   - zsh
+#   - sh
+#   - fish
+#   - dash
+#   - tmux
+EOF
+    echo "Created: $config_file"
+  fi
+  local editor="${VISUAL:-${EDITOR:-vi}}"
+  "$editor" "$config_file"
+}
+
 # ─── save / restore ──────────────────────────────────────────────────────────
 
 # YAML-safe single-quoted string: '' is the single-quote escape inside single quotes
@@ -771,6 +794,7 @@ Commands:
   config [--read]   Read tmux config (default)
   config --edit     Edit tmux config, prompt to reload after
   config --reload   Reload tmux config (must be inside tmux)
+  config --tsm      Edit tsm's own config (~/.config/tsm/config.yaml)
   save [name]       Save session layout to ~/.config/tsm/sessions/<name>.yaml
                     (uses current session if name omitted)
   save --list       List saved configs with metadata
@@ -844,6 +868,7 @@ case "${1:-}" in
       --read)   do_config_read ;;
       --edit)   do_config_edit ;;
       --reload) do_config_reload ;;
+      --tsm)    do_config_tsm ;;
       *) echo "tsm config: unknown option '${2}'" >&2; usage >&2; exit 1 ;;
     esac
     ;;
