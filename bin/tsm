@@ -608,18 +608,28 @@ do_save_list() {
     echo "No saved configs."
     return 0
   fi
+  local has_yq=false
+  command -v yq &>/dev/null && has_yq=true
   local any=false
   while IFS= read -r file; do
     [[ -z "$file" ]] && continue
-    local name created windows panes
+    local name session_name created windows panes running
     name=$(basename "$file" .yaml)
-    if command -v yq &>/dev/null; then
+    if $has_yq; then
+      session_name=$(yq -r '.name // ""' "$file" 2>/dev/null)
+      [[ -z "$session_name" ]] && session_name="$name"
       created=$(yq -r '.created_at // "unknown"' "$file" 2>/dev/null)
       windows=$(yq -r '.windows | length' "$file" 2>/dev/null)
       panes=$(yq -r '[.windows[].panes | length] | add // 0' "$file" 2>/dev/null)
-      printf "  %-20s  %s  (%s window(s), %s pane(s))\n" "$name" "$created" "$windows" "$panes"
     else
-      printf "  %s\n" "$name"
+      session_name="$name"
+    fi
+    running=""
+    tmux has-session -t "$session_name" 2>/dev/null && running=" ●"
+    if $has_yq; then
+      printf "  %-20s  %s  (%s window(s), %s pane(s))%s\n" "$name" "$created" "$windows" "$panes" "$running"
+    else
+      printf "  %s%s\n" "$name" "$running"
     fi
     any=true
   done < <(find "$dir" -maxdepth 1 -name '*.yaml' -type f | sort)
