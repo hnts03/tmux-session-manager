@@ -317,9 +317,13 @@ pick_config() {
     echo "tsm restore: no saved configs in $dir." >&2
     return 1
   fi
+  local dir_q
+  printf -v dir_q '%q' "$dir"
   local picked
   picked=$(echo "$configs" | fzf --ansi --reverse --no-sort \
-    --prompt="restore session > ") || return 1
+    --prompt="restore session > " \
+    --preview="yq -r '.windows[] | \"  \(.index): \(.name)  (\(.panes|length) pane(s))\"' ${dir_q}/{}.yaml 2>/dev/null || cat ${dir_q}/{}.yaml 2>/dev/null" \
+    --preview-window='right:40%:wrap') || return 1
   [[ -z "$picked" ]] && return 1
   echo "$picked"
 }

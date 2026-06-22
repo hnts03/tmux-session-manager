@@ -197,7 +197,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] `tsm save --list` — show indicator when a saved config's session is currently running
 
 **Picker improvements**
-- [ ] `tsm restore` picker: fzf preview pane showing saved windows/pane layout
+- [x] `tsm restore` picker: fzf preview pane showing saved windows/pane layout
 - [ ] `l` key in picker — toggle pane logging for the selected session's active pane
 
 **New subcommands**
