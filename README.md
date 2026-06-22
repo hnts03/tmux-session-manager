@@ -133,6 +133,7 @@ tsm help            # show help
 | `r` | Rename selected session |
 | `s` | Save selected session layout |
 | `R` | Restore a saved session (opens picker) |
+| `l` | Toggle pane logging for the selected session's active pane |
 | `E` | Detach current tmux client |
 | `q` / `ESC` | Quit |
 
@@ -198,7 +199,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 
 **Picker improvements**
 - [x] `tsm restore` picker: fzf preview pane showing saved windows/pane layout
-- [ ] `l` key in picker — toggle pane logging for the selected session's active pane
+- [x] `l` key in picker — toggle pane logging for the selected session's active pane
 
 **New subcommands**
 - [ ] `tsm log grep <pattern> [target]` — search within log files

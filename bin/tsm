@@ -745,7 +745,7 @@ main() {
 
   local create_token="[+] Create new session"
   local header
-  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved'
+  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle'
 
   local selected
   selected=$(
@@ -770,6 +770,7 @@ main() {
         --bind "s:execute-silent({ printf 'save:'; printf '%s' {}; } > '$action_file')+abort" \
         --bind "R:execute-silent(printf 'restore' > '$action_file')+abort" \
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
+        --bind "l:execute-silent({ printf 'log-toggle:'; printf '%s' {}; } > '$action_file')+abort" \
       || true
   )
 
@@ -800,6 +801,24 @@ main() {
     restore)   do_restore ;;
     new)       do_new ;;
     detach)    do_detach ;;
+    log-toggle:*)
+      local target="${action#log-toggle:}"
+      [[ "$target" == "$create_token" ]] && { main; return; }
+      local pane_target
+      pane_target=$(tmux display-message -t "=$target" \
+        -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null) || {
+        echo "Session '$target' is not running." >&2; sleep 1; main; return
+      }
+      local is_piped
+      is_piped=$(tmux display-message -t "$pane_target" -p '#{pane_pipe}' 2>/dev/null) || is_piped="0"
+      if [[ "$is_piped" == "1" ]]; then
+        do_log_stop "$pane_target"
+      else
+        do_log_start "$pane_target"
+      fi
+      sleep 0.4
+      main
+      ;;
     "")
       # fzf aborted with no action file written (q / ESC) — just exit
       [[ -z "$selected" ]] && return 0
