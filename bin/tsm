@@ -611,9 +611,10 @@ do_log_grep() {
     exit 1
   fi
   if $plain; then
-    sed -E $'s/\x1b\\[[0-9;?]*[a-zA-Z]//g; s/\x1b\\][^\x07]*\x07//g' "$file" | grep -- "$pattern"
+    sed -E $'s/\x1b\\[[0-9;?]*[a-zA-Z]//g; s/\x1b\\][^\x07]*\x07//g' "$file" \
+      | grep -- "$pattern" || [[ $? -eq 1 ]]
   else
-    grep -- "$pattern" "$file"
+    grep -- "$pattern" "$file" || [[ $? -eq 1 ]]
   fi
 }
 
