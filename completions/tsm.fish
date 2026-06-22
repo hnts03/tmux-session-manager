@@ -51,6 +51,7 @@ complete -c tsm -n "__fish_seen_subcommand_from restore" -l with-commands -d "Re
 # log: actions
 set -l log_actions start stop status list show tail grep clean help
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a start  -d "Start logging pane output"
+complete -c tsm -n "__fish_seen_subcommand_from log; and __fish_seen_subcommand_from start" -l timestamp -d "Prepend timestamps to each logged line"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a stop   -d "Stop logging"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a status -d "Show panes being logged"
 complete -c tsm -n "__fish_seen_subcommand_from log; and not __fish_seen_subcommand_from $log_actions" -a list   -d "List log files"

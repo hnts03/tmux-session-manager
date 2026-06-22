@@ -205,7 +205,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 
 **New subcommands**
 - [x] `tsm log grep <pattern> [target]` — search within log files
-- [ ] `tsm log start --timestamp` — prepend timestamps to each logged line
+- [x] `tsm log start --timestamp` — prepend timestamps to each logged line
 
 **Robustness**
 - [ ] `tsm restore` layout fallback — apply `even-horizontal` if saved layout string fails (terminal size mismatch)

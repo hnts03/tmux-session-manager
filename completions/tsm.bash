@@ -54,6 +54,9 @@ _tsm_completion() {
     show|tail|grep)
       COMPREPLY=($(compgen -W "--plain" -- "$cur"))
       ;;
+    start)
+      COMPREPLY=($(compgen -W "--timestamp --all" -- "$cur"))
+      ;;
     clean)
       COMPREPLY=($(compgen -W "--all" -- "$cur"))
       ;;

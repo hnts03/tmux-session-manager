@@ -428,8 +428,9 @@ do_restore() {
 do_log_write() {
   local file="$1"
   local max="${2:-10485760}"
+  local timestamp="${3:-false}"
   mkdir -p "$(dirname "$file")"
-  awk -v file="$file" -v max="$max" '
+  awk -v file="$file" -v max="$max" -v ts="$timestamp" '
     BEGIN {
       cmd = "wc -c < \"" file "\" 2>/dev/null"
       cmd | getline written
@@ -437,9 +438,10 @@ do_log_write() {
       written = written + 0
     }
     {
-      print >> file
+      line = (ts == "true") ? (strftime("[%Y-%m-%dT%H:%M:%S] ", systime()) $0) : $0
+      print line >> file
       fflush(file)
-      written += length($0) + 1
+      written += length(line) + 1
       if (written >= max) {
         close(file)
         system("mv \"" file "\" \"" file ".1\" 2>/dev/null")
@@ -464,7 +466,14 @@ _panes_for_target() {
 }
 
 do_log_start() {
-  local arg="${1:-}"
+  local arg="" timestamp=false
+  for a in "$@"; do
+    case "$a" in
+      --timestamp) timestamp=true ;;
+      *) [[ -z "$arg" ]] && arg="$a" ;;
+    esac
+  done
+
   local self="${TSM_SELF:-$0}"
   local max="${TSM_LOG_MAX_BYTES:-$_TSM_LOG_MAX_BYTES}"
 
@@ -481,9 +490,11 @@ do_log_start() {
     mkdir -p "$(dirname "$file")"
     local file_q
     printf -v file_q '%q' "$file"
+    local ts_flag
+    $timestamp && ts_flag="true" || ts_flag="false"
     # close any existing pipe first to avoid double-piping
     tmux pipe-pane -t "$p"
-    tmux pipe-pane -t "$p" "$self_q log __write $file_q $max"
+    tmux pipe-pane -t "$p" "$self_q log __write $file_q $max $ts_flag"
     echo "Logging: $p → $file"
   done <<< "$panes"
 }
@@ -974,7 +985,7 @@ case "${1:-}" in
     ;;
   log)
     case "${2:-}" in
-      start)   check_deps; do_log_start  "${3:-}" ;;
+      start)   check_deps; shift 2; do_log_start "$@" ;;
       stop)    check_deps; do_log_stop   "${3:-}" ;;
       status)  check_deps; do_log_status ;;
       list)    do_log_list "${3:-}" ;;
@@ -982,13 +993,14 @@ case "${1:-}" in
       tail)    check_deps; shift 2; do_log_tail "$@" ;;
       grep)    check_deps; shift 2; do_log_grep "$@" ;;
       clean)   do_log_clean "${3:-}" ;;
-      __write) do_log_write "${3:-}" "${4:-}" ;;
+      __write) do_log_write "${3:-}" "${4:-}" "${5:-}" ;;
       help|"")
         cat <<EOF
 tsm log <action>
 
 Actions:
-  start [target|--all]   Start logging current pane (or --all in current session)
+  start [--timestamp] [target|--all]
+                         Start logging (--timestamp prepends [YYYY-MM-DDTHH:MM:SS] to each line)
   stop  [target|--all]   Stop logging
   status                 Show panes currently being logged
   list  [session]        List log files (optionally filter by session)

@@ -37,6 +37,7 @@ _tsm_log() {
       ;;
     args)
       case $words[2] in
+        start)     _arguments '--timestamp[prepend timestamps]' '--all[all panes in session]' ;;
         show|tail|grep) _arguments '--plain[strip ANSI escapes]' ;;
         clean)     _arguments '--all[clean all sessions]' ;;
       esac
