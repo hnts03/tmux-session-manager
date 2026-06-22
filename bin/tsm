@@ -474,6 +474,14 @@ do_log_start() {
     esac
   done
 
+  if $timestamp; then
+    if ! awk 'BEGIN { strftime("%Y", systime()); exit 0 }' 2>/dev/null; then
+      echo "tsm: --timestamp requires awk with strftime/systime support." >&2
+      echo "     Install gawk: brew install gawk  (or: apt install gawk)" >&2
+      return 1
+    fi
+  fi
+
   local self="${TSM_SELF:-$0}"
   local max="${TSM_LOG_MAX_BYTES:-$_TSM_LOG_MAX_BYTES}"
 
@@ -483,6 +491,7 @@ do_log_start() {
   local panes
   panes=$(_panes_for_target "$arg") || return 1
 
+  local ts_flag="$timestamp"
   while read -r p; do
     [[ -z "$p" ]] && continue
     local file
@@ -490,8 +499,6 @@ do_log_start() {
     mkdir -p "$(dirname "$file")"
     local file_q
     printf -v file_q '%q' "$file"
-    local ts_flag
-    $timestamp && ts_flag="true" || ts_flag="false"
     # close any existing pipe first to avoid double-piping
     tmux pipe-pane -t "$p"
     tmux pipe-pane -t "$p" "$self_q log __write $file_q $max $ts_flag"
