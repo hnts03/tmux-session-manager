@@ -1,4 +1,4 @@
-VERSION  := 0.1.0
+VERSION  := 0.3.1
 PKG_NAME := tsm
 DEB_DIR  := packaging/debian
 DEB_BIN  := $(DEB_DIR)/usr/local/bin
