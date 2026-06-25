@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.0"
+VERSION="0.3.1"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -67,9 +67,9 @@ load_config() {
 }
 
 apply_env_overrides() {
-  [[ -n "${TSM_LOG_MAX_BYTES:-}" ]] && _TSM_LOG_MAX_BYTES="$TSM_LOG_MAX_BYTES"
-  [[ -n "${TSM_SESSIONS_DIR:-}"  ]] && _TSM_SESSIONS_DIR="$TSM_SESSIONS_DIR"
-  [[ -n "${TSM_LOGS_DIR:-}"      ]] && _TSM_LOGS_DIR="$TSM_LOGS_DIR"
+  _TSM_LOG_MAX_BYTES="${TSM_LOG_MAX_BYTES:-$_TSM_LOG_MAX_BYTES}"
+  _TSM_SESSIONS_DIR="${TSM_SESSIONS_DIR:-$_TSM_SESSIONS_DIR}"
+  _TSM_LOGS_DIR="${TSM_LOGS_DIR:-$_TSM_LOGS_DIR}"
 }
 
 # resolve a target to absolute pane id; default = current pane
