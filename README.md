@@ -212,6 +212,37 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 
 ---
 
+### Next Future Works
+
+**1. Session templates**
+- [ ] `tsm template` subcommand — manage predefined session layouts independent of live sessions
+- [ ] fzf picker for template selection with preview of windows/panes layout
+- [ ] Built-in starter templates (e.g. `default`, `dev`, `monitoring`)
+- [ ] `tsm template save <name>` from current session, `tsm template apply <name>` to spawn a new session
+
+**2. Restore UX**
+- [ ] Dedicated restore menu — `R` key in main picker opens a full restore UI (not just a plain fzf list)
+- [ ] Restore picker shows running indicator, last-saved date, window/pane count in preview
+
+**3. Picker numeric shortcuts**
+- [ ] Press `1`–`9` in the main fzf picker to instantly attach to the nth session (no Enter needed)
+
+**4. Session info in picker**
+- [ ] Show uptime, window count, pane count alongside session name in the picker list
+- [ ] Optional per-session description field stored in saved config, shown in preview
+
+**5. Log improvements**
+- [ ] Auto-logging on session create (default: on, configurable via `auto_log` in `config.yaml`)
+- [ ] `tsm log grep --all <pattern>` — search across all sessions/windows/panes at once, prefix each match with `session:window.pane`
+
+**6. tsm doctor**
+- [ ] `tsm doctor` — check dependency versions, validate config file, summarise log directory disk usage
+
+**7. tsm clone**
+- [ ] `tsm clone [source-session] [new-name]` — duplicate a live session's window/pane layout into a new session
+
+---
+
 ## License
 
 [MIT](LICENSE)
