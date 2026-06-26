@@ -129,6 +129,7 @@ tsm help            # show help
 | Key | Action |
 |-----|--------|
 | `↑` / `↓` or `k` / `j` | Navigate |
+| `1`–`9` | Attach to nth session instantly (no Enter needed) |
 | `Enter` / `Space` | Attach to selected session |
 | `d` / `Backspace` | Delete selected session |
 | `n` / `N` | Create new session |
@@ -227,7 +228,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] Restore picker shows running indicator, last-saved date, window/pane count in preview
 
 **3. Picker numeric shortcuts**
-- [ ] Press `1`–`9` in the main fzf picker to instantly attach to the nth session (no Enter needed)
+- [x] Press `1`–`9` in the main fzf picker to instantly attach to the nth session (no Enter needed)
 
 **4. Session info in picker**
 - [ ] Show uptime, window count, pane count alongside session name in the picker list

@@ -1158,7 +1158,13 @@ main() {
 
   local create_token="[+] Create new session"
   local header
-  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle  t:template'
+  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle  t:template  1-9:attach nth'
+
+  local num_binds=()
+  local _i
+  for _i in {1..9}; do
+    num_binds+=("--bind" "${_i}:execute-silent({ printf 'attach:'; tmux list-sessions -F '#{session_name}' 2>/dev/null | sed -n '${_i}p'; } > '$action_file')+abort")
+  done
 
   local selected
   selected=$(
@@ -1185,6 +1191,7 @@ main() {
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
         --bind "l:execute-silent({ printf 'log-toggle:'; printf '%s' {}; } > '$action_file')+abort" \
         --bind "t:execute-silent(printf 'template' > '$action_file')+abort" \
+        "${num_binds[@]}" \
       || true
   )
 
@@ -1235,6 +1242,14 @@ main() {
       fi
       sleep 0.4
       main
+      ;;
+    attach:*)
+      local target="${action#attach:}"
+      if [[ -n "$target" ]]; then
+        do_attach "$target"
+      else
+        main
+      fi
       ;;
     "")
       # fzf aborted with no action file written (q / ESC) — just exit
