@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.1"
+VERSION="0.4.0"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -1143,7 +1143,8 @@ do_template_apply() {
     done
 
     tmux select-layout -t "$session_name:$current_idx" "$w_layout" 2>/dev/null \
-      || { tmux select-layout -t "$session_name:$current_idx" even-horizontal 2>/dev/null || true; }
+      || { tmux select-layout -t "$session_name:$current_idx" even-horizontal 2>/dev/null || true
+           echo "tsm template: warning — layout mismatch for window '$w_name'; applied even-horizontal" >&2; }
   done <<< "$windows_data"
 
   do_attach "$session_name"
@@ -1562,11 +1563,16 @@ Keybindings (inside picker):
 EOF
 }
 
-# __write and template __preview skip config loading — both are called on hot paths.
-if [[ "${1:-}:${2:-}" != "log:__write" && "${1:-}:${2:-}" != "template:__preview" ]]; then
+# Hot-path subcommands skip config loading: they run on every cursor movement in fzf pickers.
+_tsm_cmd_key="${1:-}:${2:-}"
+if [[ "$_tsm_cmd_key" != "log:__write" && \
+      "$_tsm_cmd_key" != "template:__preview" && \
+      "$_tsm_cmd_key" != "restore:__preview" && \
+      "${1:-}" != "__main_preview" ]]; then
   load_config
   apply_env_overrides
 fi
+unset _tsm_cmd_key
 
 case "${1:-}" in
   "")            check_deps; main ;;
