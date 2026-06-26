@@ -121,6 +121,7 @@ tsm restore --with-commands [name] # restore layout + re-run saved commands
                                    # (skips shells: bash zsh sh fish dash tmux)
 tsm log grep <pattern> [target]    # search within log file (default: current pane)
 tsm log grep --plain <pattern>     # strip ANSI escapes before matching
+tsm log grep --all <pattern>       # search all log files; prefix each match with session:window.pane
 tsm version         # show version
 tsm help            # show help
 ```
@@ -153,6 +154,7 @@ Create `~/.config/tsm/config.yaml` to set persistent defaults (requires `yq`):
 log_max_bytes: 10485760          # 10 MB (default)
 sessions_dir: ~/.config/tsm/sessions
 logs_dir: ~/.local/share/tsm/logs
+auto_log: true                   # auto-start logging when tsm creates a new session
 restore_skip_commands:           # commands NOT re-run by --with-commands
   - bash
   - zsh
@@ -236,8 +238,8 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] Optional per-session description field stored in saved config, shown in preview
 
 **5. Log improvements**
-- [ ] Auto-logging on session create (default: on, configurable via `auto_log` in `config.yaml`)
-- [ ] `tsm log grep --all <pattern>` — search across all sessions/windows/panes at once, prefix each match with `session:window.pane`
+- [x] Auto-logging on session create (default: on, configurable via `auto_log` in `config.yaml`)
+- [x] `tsm log grep --all <pattern>` — search across all sessions/windows/panes at once, prefix each match with `session:window.pane`
 
 **6. tsm doctor**
 - [ ] `tsm doctor` — check dependency versions, validate config file, summarise log directory disk usage
