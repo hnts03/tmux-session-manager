@@ -1060,7 +1060,9 @@ pick_template() {
     } | fzf --ansi --reverse --no-sort \
         --prompt="template > " \
         --preview="$self_q template __preview {}" \
-        --preview-window='right:45%:wrap'
+        --preview-window='right:45%:wrap' \
+        --bind "j:down,k:up" \
+        --bind "q:abort,esc:abort"
   ) || return 1
   [[ -z "$picked" ]] && return 1
   echo "$picked"
@@ -1264,7 +1266,7 @@ do_template_list() {
 
 do_main_preview() {
   local name="${1:-}"
-  if [[ -z "$name" || "$name" == "["* ]]; then
+  if [[ -z "$name" || "$name" == "__create__" ]]; then
     printf '  Create a new session\n'
     return 0
   fi
@@ -1290,24 +1292,35 @@ main() {
   # ensure cleanup on exit
   trap 'rm -f "$action_file"' RETURN
 
-  local create_token="[+] Create new session"
+  local create_token="__create__"
   local header
   header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle  t:template  1-9:attach nth'
 
   local self_q
   printf -v self_q '%q' "$0"
 
-  # Session list: name TAB <Nw · uptime>  for display; {1} extracts name in fzf bindings
+  # Session list: field1=raw-name (for {1} bindings), field2=display string (shown via --with-nth=2)
+  # First line of output is the column header (used with --header-lines=1).
   local sessions_fmt
   sessions_fmt=$(tmux list-sessions \
     -F $'#{session_name}\t#{session_windows}\t#{session_created}' 2>/dev/null | \
-    awk -F'\t' -v now="$(date +%s)" 'BEGIN{OFS="\t"} {
+    awk -F'\t' -v now="$(date +%s)" '{
       secs = now - $3
       if (secs < 60)         { age = secs "s" }
       else if (secs < 3600)  { age = int(secs/60) "m" }
       else if (secs < 86400) { age = int(secs/3600) "h " int((secs%3600)/60) "m" }
       else                   { age = int(secs/86400) "d " int((secs%86400)/3600) "h" }
-      print $1, $2 "w · " age
+      names[NR] = $1; wins[NR] = $2; ages[NR] = age
+      if (length($1) > maxlen) maxlen = length($1)
+      total = NR
+    }
+    END {
+      if (total == 0) exit
+      printf "\t\033[2m    %-" maxlen "s  Info\033[0m\n", "Session"
+      for (i = 1; i <= total; i++) {
+        num = (i <= 9) ? i : " "
+        printf "%s\t %-1s  %-" maxlen "s  %sw · %s\n", names[i], num, names[i], wins[i], ages[i]
+      }
     }') || sessions_fmt=""
 
   local num_binds=()
@@ -1316,14 +1329,19 @@ main() {
     num_binds+=("--bind" "${_i}:execute-silent({ printf 'attach:'; tmux list-sessions -F '#{session_name}' 2>/dev/null | sed -n '${_i}p'; } > '$action_file')+abort")
   done
 
+  local fzf_header_lines=()
+  [[ -n "$sessions_fmt" ]] && fzf_header_lines=("--header-lines=1")
+
   local selected
   selected=$(
     {
       [[ -n "$sessions_fmt" ]] && printf '%s\n' "$sessions_fmt"
-      echo "$create_token"
+      printf '%s\t    [+] Create new session\n' "$create_token"
     } | fzf \
         --ansi --reverse --no-sort \
         --delimiter=$'\t' \
+        --with-nth=2 \
+        "${fzf_header_lines[@]}" \
         --prompt="tmux session > " \
         --header="$header" \
         --preview="$self_q __main_preview {1}" \
