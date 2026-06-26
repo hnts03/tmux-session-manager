@@ -68,6 +68,7 @@ load_config() {
   val=$(yq -r '.auto_log // ""' "$config_file" 2>/dev/null)
   [[ "$val" == "false" ]] && _TSM_AUTO_LOG=false
   [[ "$val" == "true"  ]] && _TSM_AUTO_LOG=true
+  return 0
 }
 
 apply_env_overrides() {
@@ -76,6 +77,7 @@ apply_env_overrides() {
   _TSM_LOGS_DIR="${TSM_LOGS_DIR:-$_TSM_LOGS_DIR}"
   [[ "${TSM_AUTO_LOG:-}" == "false" ]] && _TSM_AUTO_LOG=false
   [[ "${TSM_AUTO_LOG:-}" == "true"  ]] && _TSM_AUTO_LOG=true
+  return 0
 }
 
 # resolve a target to absolute pane id; default = current pane
