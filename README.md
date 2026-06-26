@@ -215,10 +215,10 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 ### Next Future Works
 
 **1. Session templates**
-- [ ] `tsm template` subcommand — manage predefined session layouts independent of live sessions
-- [ ] fzf picker for template selection with preview of windows/panes layout
-- [ ] Built-in starter templates (e.g. `default`, `dev`, `monitoring`)
-- [ ] `tsm template save <name>` from current session, `tsm template apply <name>` to spawn a new session
+- [x] `tsm template` subcommand — manage predefined session layouts independent of live sessions
+- [x] fzf picker for template selection with preview of windows/panes layout
+- [x] Built-in starter templates (e.g. `default`, `dev`, `monitoring`)
+- [x] `tsm template save <name>` from current session, `tsm template apply <name>` to spawn a new session
 
 **2. Restore UX**
 - [ ] Dedicated restore menu — `R` key in main picker opens a full restore UI (not just a plain fzf list)

@@ -790,6 +790,312 @@ do_save() {
   echo "Saved: $out"
 }
 
+# ─── templates ───────────────────────────────────────────────────────────────
+
+templates_dir() { echo "${XDG_CONFIG_HOME:-$HOME/.config}/tsm/templates"; }
+
+_builtin_preview() {
+  local name="$1"
+  case "$name" in
+    simple)
+      printf '  [built-in]\n'
+      printf '  ┌─────────────┐\n'
+      printf '  │             │\n'
+      printf '  │      0      │\n'
+      printf '  │             │\n'
+      printf '  └─────────────┘\n'
+      printf '  1 window · 1 pane\n'
+      ;;
+    split-h)
+      printf '  [built-in]\n'
+      printf '  ┌──────┬──────┐\n'
+      printf '  │      │      │\n'
+      printf '  │  0   │  1   │\n'
+      printf '  │      │      │\n'
+      printf '  └──────┴──────┘\n'
+      printf '  1 window · 2 panes (left | right)\n'
+      ;;
+    split-v)
+      printf '  [built-in]\n'
+      printf '  ┌─────────────┐\n'
+      printf '  │      0      │\n'
+      printf '  ├─────────────┤\n'
+      printf '  │      1      │\n'
+      printf '  └─────────────┘\n'
+      printf '  1 window · 2 panes (top / bottom)\n'
+      ;;
+    main-h)
+      printf '  [built-in]\n'
+      printf '  ┌──────┬──────┐\n'
+      printf '  │  0   │  2   │\n'
+      printf '  ├──────┴──────┤\n'
+      printf '  │      1      │\n'
+      printf '  └─────────────┘\n'
+      printf '  1 window · 3 panes (2 top + 1 bottom)\n'
+      ;;
+    main-v)
+      printf '  [built-in]\n'
+      printf '  ┌──────┬──────┐\n'
+      printf '  │      │  1   │\n'
+      printf '  │  0   ├──────┤\n'
+      printf '  │      │  2   │\n'
+      printf '  └──────┴──────┘\n'
+      printf '  1 window · 3 panes (1 left + 2 right)\n'
+      ;;
+    *)
+      printf '  (unknown built-in template)\n'
+      ;;
+  esac
+}
+
+_apply_builtin_panes() {
+  local session="$1" tname="$2"
+  local win_idx
+  win_idx=$(tmux display-message -t "$session:" -p '#{window_index}')
+  local w="$session:$win_idx"
+  case "$tname" in
+    simple) : ;;
+    split-h)
+      tmux split-window -h -t "$w"
+      tmux select-layout -t "$w" even-horizontal
+      ;;
+    split-v)
+      tmux split-window -v -t "$w"
+      tmux select-layout -t "$w" even-vertical
+      ;;
+    main-h)
+      # pane .0 top-left, pane .1 bottom (full width), pane .2 top-right
+      tmux split-window -v -t "$w"
+      tmux split-window -h -t "$w.0"
+      tmux select-pane -t "$w.0" 2>/dev/null || true
+      ;;
+    main-v)
+      # pane .0 left, pane .1 top-right, pane .2 bottom-right
+      tmux split-window -h -t "$w"
+      tmux split-window -v -t "$w.1"
+      tmux select-layout -t "$w" main-vertical
+      ;;
+  esac
+}
+
+pick_template() {
+  local tdir
+  tdir="$(templates_dir)"
+  local self_q
+  printf -v self_q '%q' "$0"
+
+  local picked
+  picked=$(
+    {
+      printf 'builtin/%s\n' simple split-h split-v main-h main-v
+      if [[ -d "$tdir" ]]; then
+        find "$tdir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null \
+          | sed -e 's|.*/||' -e 's|\.yaml$||'
+      fi
+    } | fzf --ansi --reverse --no-sort \
+        --prompt="template > " \
+        --preview="$self_q template __preview {}" \
+        --preview-window='right:45%:wrap'
+  ) || return 1
+  [[ -z "$picked" ]] && return 1
+  echo "$picked"
+}
+
+do_template_preview() {
+  local name="${1:-}"
+  if [[ "$name" == builtin/* ]]; then
+    _builtin_preview "${name#builtin/}"
+    return 0
+  fi
+  local file
+  file="$(templates_dir)/$(config_name_for "$name").yaml"
+  if [[ ! -f "$file" ]]; then
+    printf '  (template not found)\n'
+    return 0
+  fi
+  if command -v yq &>/dev/null; then
+    yq -r '.windows[] | "  window \(.index): \(.name)  (\(.panes | length) pane(s))"' \
+      "$file" 2>/dev/null | grep . || cat "$file" 2>/dev/null
+  else
+    cat "$file"
+  fi
+}
+
+do_template_apply() {
+  local name="${1:-}" session_name
+  if [[ -z "$name" ]]; then
+    name="$(pick_template)" || return 1
+  fi
+
+  printf "New session name: "
+  read -r session_name
+  if [[ -z "$session_name" ]]; then
+    echo "Aborted."
+    return 1
+  fi
+
+  if tmux has-session -t "=$session_name" 2>/dev/null; then
+    echo "Session '$session_name' already exists. Attaching." >&2
+    do_attach "$session_name"
+    return 0
+  fi
+
+  if [[ "$name" == builtin/* ]]; then
+    local tname="${name#builtin/}"
+    tmux new-session -d -s "$session_name" -n main
+    _apply_builtin_panes "$session_name" "$tname"
+    do_attach "$session_name"
+    return 0
+  fi
+
+  require_yq
+  local file
+  file="$(templates_dir)/$(config_name_for "$name").yaml"
+  if [[ ! -f "$file" ]]; then
+    echo "tsm template: not found: $file" >&2; return 1
+  fi
+
+  local windows_data
+  windows_data=$(yq -r \
+    '.windows | to_entries[] | "\(.key)|\(.value.name)|\(.value.layout)"' "$file")
+
+  local first=true
+  while IFS='|' read -r wi w_name w_layout; do
+    local n_panes
+    n_panes=$(yq -r ".windows[$wi].panes | length" "$file")
+
+    if $first; then
+      tmux new-session -d -s "$session_name" -n "$w_name"
+      first=false
+    else
+      tmux new-window -t "$session_name" -n "$w_name"
+    fi
+
+    local current_idx
+    current_idx=$(tmux display-message -t "$session_name:" -p '#{window_index}')
+
+    local pi
+    for ((pi=1; pi<n_panes; pi++)); do
+      tmux split-window -t "$session_name:$current_idx"
+    done
+
+    tmux select-layout -t "$session_name:$current_idx" "$w_layout" 2>/dev/null \
+      || { tmux select-layout -t "$session_name:$current_idx" even-horizontal 2>/dev/null || true; }
+  done <<< "$windows_data"
+
+  do_attach "$session_name"
+}
+
+do_template_save() {
+  local name="${1:-}"
+  if ! in_tmux; then
+    echo "tsm template save: must be inside tmux." >&2; return 1
+  fi
+  local target
+  target="$(current_session)"
+
+  if [[ -z "$name" ]]; then
+    printf "Template name: "
+    read -r name
+    [[ -z "$name" ]] && { echo "Aborted."; return 0; }
+  fi
+
+  local dir
+  dir="$(templates_dir)"
+  mkdir -p "$dir"
+  local out="$dir/$(config_name_for "$name").yaml"
+
+  if [[ -f "$out" ]]; then
+    printf "Template '%s' already exists. Overwrite? [y/N] " "$name"
+    read -r confirm
+    [[ ! "$confirm" =~ ^[yY]$ ]] && { echo "Cancelled."; return 0; }
+  fi
+
+  local tmp
+  tmp=$(mktemp "${dir}/.tsm_template.XXXXXX")
+
+  {
+    printf "name: %s\n" "$(yaml_squote "$name")"
+    printf "created_at: %s\n" "$(yaml_squote "$(date -u +%Y-%m-%dT%H:%M:%SZ)")"
+    printf "windows:\n"
+
+    local windows
+    windows=$(tmux list-windows -t "$target" \
+      -F '#{window_index}|#{window_name}|#{window_active}|#{window_layout}')
+
+    while IFS='|' read -r w_idx w_name w_active w_layout; do
+      printf "  - index: %s\n" "$w_idx"
+      printf "    name: %s\n" "$(yaml_squote "$w_name")"
+      printf "    active: %s\n" "$(bool_from_flag "$w_active")"
+      printf "    layout: %s\n" "$(yaml_squote "$w_layout")"
+      printf "    panes:\n"
+      local n_panes
+      n_panes=$(tmux list-panes -t "$target:$w_idx" | wc -l | tr -d ' ')
+      local pi
+      for ((pi=0; pi<n_panes; pi++)); do
+        printf "      - index: %s\n" "$pi"
+      done
+    done <<< "$windows"
+  } > "$tmp" && mv "$tmp" "$out" || { rm -f "$tmp"; return 1; }
+
+  echo "Template saved: $out"
+}
+
+do_template_delete() {
+  local name="${1:-}"
+  if [[ -z "$name" ]]; then
+    local tdir
+    tdir="$(templates_dir)"
+    if [[ ! -d "$tdir" ]]; then
+      echo "tsm template: no user templates." >&2; return 1
+    fi
+    local configs
+    configs=$(find "$tdir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null \
+      | sed -e 's|.*/||' -e 's|\.yaml$||')
+    if [[ -z "$configs" ]]; then
+      echo "tsm template: no user templates." >&2; return 1
+    fi
+    name=$(echo "$configs" | fzf --ansi --reverse --no-sort \
+      --prompt="delete template > ") || return 0
+    [[ -z "$name" ]] && return 0
+  fi
+
+  case "$name" in
+    builtin/*|simple|split-h|split-v|main-h|main-v)
+      echo "tsm template: cannot delete built-in templates." >&2; return 1 ;;
+  esac
+
+  local file
+  file="$(templates_dir)/$(config_name_for "$name").yaml"
+  if [[ ! -f "$file" ]]; then
+    echo "tsm template: not found: $file" >&2; return 1
+  fi
+
+  printf "Delete template '%s'? [y/N] " "$name"
+  read -r confirm
+  [[ ! "$confirm" =~ ^[yY]$ ]] && { echo "Cancelled."; return 0; }
+  rm -f "$file"
+  echo "Deleted: $file"
+}
+
+do_template_list() {
+  printf 'Built-in:\n'
+  printf '  %s\n' simple split-h split-v main-h main-v
+  local tdir
+  tdir="$(templates_dir)"
+  if [[ -d "$tdir" ]]; then
+    local user_templates
+    user_templates=$(find "$tdir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null \
+      | sed -e 's|.*/||' -e 's|\.yaml$||')
+    if [[ -n "$user_templates" ]]; then
+      printf 'User:\n'
+      while IFS= read -r t; do
+        printf '  %s\n' "$t"
+      done <<< "$user_templates"
+    fi
+  fi
+}
+
 # ─── main fzf menu ───────────────────────────────────────────────────────────
 
 main() {
@@ -800,7 +1106,7 @@ main() {
 
   local create_token="[+] Create new session"
   local header
-  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle'
+  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle  t:template'
 
   local selected
   selected=$(
@@ -826,6 +1132,7 @@ main() {
         --bind "R:execute-silent(printf 'restore' > '$action_file')+abort" \
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
         --bind "l:execute-silent({ printf 'log-toggle:'; printf '%s' {}; } > '$action_file')+abort" \
+        --bind "t:execute-silent(printf 'template' > '$action_file')+abort" \
       || true
   )
 
@@ -854,6 +1161,9 @@ main() {
       main
       ;;
     restore)   do_restore ;;
+    template)
+      do_template_apply || { sleep 0.3; main; return; }
+      ;;
     new)       do_new ;;
     detach)    do_detach ;;
     log-toggle:*)
@@ -910,6 +1220,11 @@ Commands:
                               Restore layout and re-run saved commands
                               (skips: bash zsh sh fish dash tmux)
   log <action>      Pane output logging (see 'tsm log help')
+  template              Open template picker (create new session from template)
+  template list         List all templates (built-in + user)
+  template apply [name] Create a new session from a template
+  template save [name]  Save current session layout as a user template
+  template delete [name]Delete a user template
   version           Show version
   help              Show this help
 
@@ -922,14 +1237,14 @@ Keybindings (inside picker):
   s            Save selected session layout
   R            Restore a saved session (opens picker)
   l            Toggle pane logging for the selected session's active pane
+  t            Create new session from a template (opens template picker)
   E            Detach current client
   q / ESC      Quit
 EOF
 }
 
-# __write is called per line of pane output via tmux pipe-pane — skip config loading
-# to avoid spawning multiple yq processes on the hot path.
-if [[ "${1:-}" != "log" || "${2:-}" != "__write" ]]; then
+# __write and template __preview skip config loading — both are called on hot paths.
+if [[ "${1:-}:${2:-}" != "log:__write" && "${1:-}:${2:-}" != "template:__preview" ]]; then
   load_config
   apply_env_overrides
 fi
@@ -1026,6 +1341,17 @@ Size cap: 10 MB by default. Override via config file (log_max_bytes) or \$TSM_LO
 EOF
         ;;
       *) echo "tsm log: unknown action '${2}'" >&2; exit 1 ;;
+    esac
+    ;;
+  template)
+    case "${2:-}" in
+      __preview) do_template_preview "${3:-}" ;;
+      save)      check_deps; do_template_save "${3:-}" ;;
+      apply)     check_deps; do_template_apply "${3:-}" ;;
+      delete)    check_deps; do_template_delete "${3:-}" ;;
+      list)      do_template_list ;;
+      help|"")   check_deps; do_template_apply ;;
+      *)         echo "tsm template: unknown subcommand '${2}'" >&2; exit 1 ;;
     esac
     ;;
   version)  echo "tsm $VERSION" ;;

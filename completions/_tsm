@@ -14,6 +14,52 @@ _tsm_saved_configs() {
   _describe 'saved config' configs
 }
 
+_tsm_user_templates() {
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/templates"
+  local templates
+  templates=(${(f)"$(find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||')"})
+  _describe 'user template' templates
+}
+
+_tsm_template() {
+  local state
+  _arguments \
+    '1: :->action' \
+    '*: :->args'
+  case $state in
+    action)
+      local actions
+      actions=(
+        'list:list all templates'
+        'apply:create a new session from a template'
+        'save:save current session layout as a template'
+        'delete:delete a user template'
+        'help:show template help'
+      )
+      _describe 'action' actions
+      ;;
+    args)
+      case $words[2] in
+        apply)
+          local builtins
+          builtins=(
+            'builtin/simple:1 window, 1 pane'
+            'builtin/split-h:1 window, 2 panes left/right'
+            'builtin/split-v:1 window, 2 panes top/bottom'
+            'builtin/main-h:1 window, 3 panes (2 top + 1 bottom)'
+            'builtin/main-v:1 window, 3 panes (1 left + 2 right)'
+          )
+          _describe 'built-in template' builtins
+          _tsm_user_templates
+          ;;
+        delete)
+          _tsm_user_templates
+          ;;
+      esac
+      ;;
+  esac
+}
+
 _tsm_log() {
   local state
   _arguments \
@@ -64,6 +110,7 @@ _tsm() {
         'save:save session layout'
         'restore:restore a saved session'
         'log:pane output logging'
+        'template:manage session templates'
         'version:show version'
         'help:show help'
       )
@@ -97,6 +144,9 @@ _tsm() {
           ;;
         log)
           _tsm_log
+          ;;
+        template)
+          _tsm_template
           ;;
       esac
       ;;

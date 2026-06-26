@@ -10,13 +10,18 @@ _tsm_saved_configs() {
   find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
 }
 
+_tsm_user_templates() {
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/templates"
+  find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
+}
+
 _tsm_completion() {
   local cur prev pprev
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   pprev="${COMP_WORDS[COMP_CWORD-2]:-}"
 
-  local subcommands="new ls kill rename config save restore log version help"
+  local subcommands="new ls kill rename config save restore log template version help"
 
   case "$prev" in
     tsm)
@@ -50,6 +55,20 @@ _tsm_completion() {
       ;;
     log)
       COMPREPLY=($(compgen -W "start stop status list show tail grep clean help" -- "$cur"))
+      ;;
+    template)
+      COMPREPLY=($(compgen -W "list apply save delete help" -- "$cur"))
+      ;;
+    apply)
+      if [[ "${COMP_WORDS[1]}" == "template" ]]; then
+        local builtins="builtin/simple builtin/split-h builtin/split-v builtin/main-h builtin/main-v"
+        COMPREPLY=($(compgen -W "$builtins $(_tsm_user_templates)" -- "$cur"))
+      fi
+      ;;
+    delete)
+      if [[ "${COMP_WORDS[1]}" == "template" ]]; then
+        COMPREPLY=($(compgen -W "$(_tsm_user_templates)" -- "$cur"))
+      fi
       ;;
     show|tail|grep)
       COMPREPLY=($(compgen -W "--plain" -- "$cur"))
