@@ -113,6 +113,7 @@ tsm config --reload # reload tmux config (must be inside tmux)
 tsm config --tsm    # edit tsm's own config (~/.config/tsm/config.yaml)
 tsm save [name]     # save session to ~/.config/tsm/sessions/<name>.yaml
                     # (uses current attached session if name omitted)
+                    # add description: "..." to the YAML to show in picker preview
 tsm save --list     # list saved configs with metadata (date, windows, panes)
 tsm save --delete [name]  # delete a saved config (fzf picker if name omitted)
 tsm restore [name]                 # restore a saved session (layout only)
@@ -231,8 +232,8 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] Press `1`–`9` in the main fzf picker to instantly attach to the nth session (no Enter needed)
 
 **4. Session info in picker**
-- [ ] Show uptime, window count, pane count alongside session name in the picker list
-- [ ] Optional per-session description field stored in saved config, shown in preview
+- [x] Show uptime, window count, pane count alongside session name in the picker list
+- [x] Optional per-session description field stored in saved config, shown in preview
 
 **5. Log improvements**
 - [ ] Auto-logging on session create (default: on, configurable via `auto_log` in `config.yaml`)
