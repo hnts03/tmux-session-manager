@@ -14,7 +14,7 @@ function __tsm_user_templates
     find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
 end
 
-set -l subcommands new ls kill rename config save restore log template doctor version help
+set -l subcommands new ls kill rename config save restore log template clone doctor version help
 
 # disable file completion
 complete -c tsm -f
@@ -29,6 +29,7 @@ complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a save    -d 
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a restore -d "Restore a saved session"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a log      -d "Pane output logging"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a template -d "Manage session templates"
+complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a clone    -d "Duplicate a live session layout"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a doctor   -d "Check deps, config, disk usage"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a version  -d "Show version"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a help    -d "Show help"
@@ -37,8 +38,9 @@ complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a help    -d 
 complete -c tsm -n "__fish_seen_subcommand_from kill" -a "(__tsm_sessions)"
 complete -c tsm -n "__fish_seen_subcommand_from kill" -l all -d "Kill multiple sessions (fzf multi-select)"
 
-# rename: session names for first arg
+# rename/clone: session names for first arg
 complete -c tsm -n "__fish_seen_subcommand_from rename" -a "(__tsm_sessions)"
+complete -c tsm -n "__fish_seen_subcommand_from clone"  -a "(__tsm_sessions)"
 
 # config: flags
 complete -c tsm -n "__fish_seen_subcommand_from config" -l read   -d "Read tmux config (default)"

@@ -21,7 +21,7 @@ _tsm_completion() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   pprev="${COMP_WORDS[COMP_CWORD-2]:-}"
 
-  local subcommands="new ls kill rename config save restore log template doctor version help"
+  local subcommands="new ls kill rename config save restore log template clone doctor version help"
 
   case "$prev" in
     tsm)
@@ -30,7 +30,7 @@ _tsm_completion() {
     kill)
       COMPREPLY=($(compgen -W "--all $(_tsm_sessions)" -- "$cur"))
       ;;
-    rename)
+    rename|clone)
       COMPREPLY=($(compgen -W "$(_tsm_sessions)" -- "$cur"))
       ;;
     config)

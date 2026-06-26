@@ -481,6 +481,77 @@ do_restore() {
   fi
 }
 
+do_clone() {
+  local source="${1:-}" new_name="${2:-}"
+
+  if [[ -z "$source" ]]; then
+    if ! in_tmux; then
+      echo "tsm clone: must be inside tmux or specify a source session." >&2
+      return 1
+    fi
+    source="$(current_session)"
+  fi
+
+  if ! tmux has-session -t "=$source" 2>/dev/null; then
+    echo "tsm clone: session '$source' not found." >&2
+    return 1
+  fi
+
+  if [[ -z "$new_name" ]]; then
+    printf "New session name (clone of '%s'): " "$source"
+    read -r new_name
+    [[ -z "$new_name" ]] && { echo "Cancelled."; return 0; }
+  fi
+
+  if tmux has-session -t "=$new_name" 2>/dev/null; then
+    echo "tsm clone: session '$new_name' already exists." >&2
+    return 1
+  fi
+
+  local windows_data
+  windows_data=$(tmux list-windows -t "=$source" \
+    -F "#{window_index}|#{window_name}|#{window_layout}|#{window_active}")
+
+  local first=true active_window=""
+
+  while IFS='|' read -r wi w_name w_layout w_active; do
+    local panes_data first_cwd
+    panes_data=$(tmux list-panes -t "=$source:$wi" \
+      -F "#{pane_index}|#{pane_current_path}")
+    first_cwd=$(printf '%s\n' "$panes_data" | head -1 | cut -d'|' -f2)
+    [[ -z "$first_cwd" ]] && first_cwd="$HOME"
+
+    if $first; then
+      tmux new-session -d -s "$new_name" -n "$w_name" -c "$first_cwd"
+      first=false
+    else
+      tmux new-window -t "$new_name" -n "$w_name" -c "$first_cwd"
+    fi
+
+    local current_idx
+    current_idx=$(tmux display-message -t "$new_name:" -p '#{window_index}')
+
+    local skip_first=true
+    while IFS='|' read -r _pi p_cwd; do
+      if $skip_first; then skip_first=false; continue; fi
+      [[ -z "$p_cwd" ]] && p_cwd="$HOME"
+      tmux split-window -t "$new_name:$current_idx" -c "$p_cwd"
+    done <<< "$panes_data"
+
+    tmux select-layout -t "$new_name:$current_idx" "$w_layout" 2>/dev/null \
+      || { tmux select-layout -t "$new_name:$current_idx" even-horizontal 2>/dev/null || true
+           echo "tsm clone: warning — layout mismatch for window '$w_name'" >&2; }
+
+    [[ "$w_active" == "1" ]] && active_window="$current_idx"
+  done <<< "$windows_data"
+
+  [[ -n "$active_window" ]] && tmux select-window -t "$new_name:$active_window" 2>/dev/null || true
+  [[ "$_TSM_AUTO_LOG" == "true" ]] && do_log_start "$new_name" 2>/dev/null || true
+
+  echo "Cloned '$source' → '$new_name'"
+  do_attach "$new_name"
+}
+
 # ─── pane output logging ─────────────────────────────────────────────────────
 
 # internal: read stdin, append to file with size cap + rotation
@@ -1471,6 +1542,7 @@ Commands:
   template apply [name] Create a new session from a template
   template save [name]  Save current session layout as a user template
   template delete [name]Delete a user template
+  clone [src] [new] Duplicate a live session's window/pane layout into a new session
   doctor            Check dependencies, validate config, show disk usage
   version           Show version
   help              Show this help
@@ -1604,6 +1676,7 @@ EOF
       *)         echo "tsm template: unknown subcommand '${2}'" >&2; exit 1 ;;
     esac
     ;;
+  clone)    check_deps; shift; do_clone "$@" ;;
   doctor)   do_doctor ;;
   version)  echo "tsm $VERSION" ;;
   help|-h|--help) usage ;;

@@ -122,6 +122,7 @@ tsm restore --with-commands [name] # restore layout + re-run saved commands
 tsm log grep <pattern> [target]    # search within log file (default: current pane)
 tsm log grep --plain <pattern>     # strip ANSI escapes before matching
 tsm log grep --all <pattern>       # search all log files; prefix each match with session:window.pane
+tsm clone [src] [new-name]  # duplicate a live session's window/pane layout into a new session
 tsm doctor          # check dependencies, validate config, show log/session disk usage
 tsm version         # show version
 tsm help            # show help
@@ -246,7 +247,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] `tsm doctor` — check dependency versions, validate config file, summarise log directory disk usage
 
 **7. tsm clone**
-- [ ] `tsm clone [source-session] [new-name]` — duplicate a live session's window/pane layout into a new session
+- [x] `tsm clone [source-session] [new-name]` — duplicate a live session's window/pane layout into a new session
 
 ---
 
