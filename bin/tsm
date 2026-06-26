@@ -1337,6 +1337,107 @@ main() {
   esac
 }
 
+do_doctor() {
+  local ok=0 warn=0 fail=0
+  _ok()   { printf '  \e[32m✓\e[0m %s\n' "$1"; (( ok++   )) || true; }
+  _warn() { printf '  \e[33m!\e[0m %s\n' "$1"; (( warn++ )) || true; }
+  _fail() { printf '  \e[31m✗\e[0m %s\n' "$1"; (( fail++ )) || true; }
+
+  printf '\n\e[1mDependencies\e[0m\n'
+
+  # tmux
+  if command -v tmux &>/dev/null; then
+    local tv
+    tv=$(tmux -V 2>/dev/null | awk '{print $2}')
+    _ok "tmux $tv"
+  else
+    _fail "tmux not found (required)"
+  fi
+
+  # fzf
+  if command -v fzf &>/dev/null; then
+    local fv
+    fv=$(fzf --version 2>/dev/null | awk '{print $1}')
+    _ok "fzf $fv"
+  else
+    _fail "fzf not found (required)"
+  fi
+
+  # yq
+  if command -v yq &>/dev/null; then
+    local yv
+    yv=$(yq --version 2>/dev/null | awk '{print $NF}')
+    _ok "yq $yv (optional — needed for save/restore)"
+  else
+    _warn "yq not found (optional — needed for tsm save/restore)"
+  fi
+
+  printf '\n\e[1mConfig\e[0m\n'
+
+  local cfg_file
+  cfg_file="$(tsm_self_config_path)"
+  if [[ ! -f "$cfg_file" ]]; then
+    _ok "no config file (using defaults)"
+  elif ! command -v yq &>/dev/null; then
+    _warn "config file exists at $cfg_file but yq is not installed (cannot validate)"
+  else
+    local cfg_ok=true
+    local val
+    val=$(yq -r '.log_max_bytes // ""' "$cfg_file" 2>/dev/null)
+    if [[ -n "$val" && ! "$val" =~ ^[0-9]+$ ]]; then
+      _fail "config: log_max_bytes must be an integer (got: $val)"
+      cfg_ok=false
+    fi
+    val=$(yq -r '.auto_log // ""' "$cfg_file" 2>/dev/null)
+    if [[ -n "$val" && "$val" != "true" && "$val" != "false" ]]; then
+      _fail "config: auto_log must be true or false (got: $val)"
+      cfg_ok=false
+    fi
+    local sd
+    sd=$(yq -r '.sessions_dir // ""' "$cfg_file" 2>/dev/null)
+    sd="${sd/#\~/$HOME}"
+    [[ -n "$sd" && ! -d "$sd" ]] && _warn "config: sessions_dir '$sd' does not exist"
+    local ld
+    ld=$(yq -r '.logs_dir // ""' "$cfg_file" 2>/dev/null)
+    ld="${ld/#\~/$HOME}"
+    [[ -n "$ld" && ! -d "$ld" ]] && _warn "config: logs_dir '$ld' does not exist (created on first use)"
+    $cfg_ok && _ok "config valid ($cfg_file)"
+  fi
+
+  printf '\n\e[1mDisk usage\e[0m\n'
+
+  local sess_dir log_dir
+  sess_dir="$(sessions_dir)"
+  log_dir="$(logs_dir)"
+
+  if [[ -d "$sess_dir" ]]; then
+    local n_saved
+    n_saved=$(find "$sess_dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | wc -l | tr -d ' ')
+    local sess_size
+    sess_size=$(du -sh "$sess_dir" 2>/dev/null | awk '{print $1}')
+    _ok "sessions: $n_saved saved configs, $sess_size ($sess_dir)"
+  else
+    _ok "sessions: no saved configs ($sess_dir)"
+  fi
+
+  if [[ -d "$log_dir" ]]; then
+    local log_size n_logs
+    log_size=$(du -sh "$log_dir" 2>/dev/null | awk '{print $1}')
+    n_logs=$(find "$log_dir" -name '*.log' -not -name '*.log.1' -type f 2>/dev/null | wc -l | tr -d ' ')
+    _ok "logs: $n_logs log files, $log_size ($log_dir)"
+  else
+    _ok "logs: no log directory ($log_dir)"
+  fi
+
+  printf '\n'
+  local total=$(( ok + warn + fail ))
+  printf '%d check(s): \e[32m%d ok\e[0m' "$total" "$ok"
+  [[ $warn -gt 0 ]] && printf ', \e[33m%d warning(s)\e[0m' "$warn"
+  [[ $fail -gt 0 ]] && printf ', \e[31m%d failure(s)\e[0m' "$fail"
+  printf '\n\n'
+  [[ $fail -gt 0 ]] && return 1 || return 0
+}
+
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
 usage() {
@@ -1370,6 +1471,7 @@ Commands:
   template apply [name] Create a new session from a template
   template save [name]  Save current session layout as a user template
   template delete [name]Delete a user template
+  doctor            Check dependencies, validate config, show disk usage
   version           Show version
   help              Show this help
 
@@ -1502,6 +1604,7 @@ EOF
       *)         echo "tsm template: unknown subcommand '${2}'" >&2; exit 1 ;;
     esac
     ;;
+  doctor)   do_doctor ;;
   version)  echo "tsm $VERSION" ;;
   help|-h|--help) usage ;;
   *)        echo "tsm: unknown command '$1'" >&2; usage >&2; exit 1 ;;

@@ -21,7 +21,7 @@ _tsm_completion() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   pprev="${COMP_WORDS[COMP_CWORD-2]:-}"
 
-  local subcommands="new ls kill rename config save restore log template version help"
+  local subcommands="new ls kill rename config save restore log template doctor version help"
 
   case "$prev" in
     tsm)

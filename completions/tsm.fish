@@ -14,7 +14,7 @@ function __tsm_user_templates
     find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
 end
 
-set -l subcommands new ls kill rename config save restore log template version help
+set -l subcommands new ls kill rename config save restore log template doctor version help
 
 # disable file completion
 complete -c tsm -f
@@ -29,6 +29,7 @@ complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a save    -d 
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a restore -d "Restore a saved session"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a log      -d "Pane output logging"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a template -d "Manage session templates"
+complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a doctor   -d "Check deps, config, disk usage"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a version  -d "Show version"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a help    -d "Show help"
 
