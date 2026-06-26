@@ -303,6 +303,38 @@ is_skip_command() {
   return 1
 }
 
+do_restore_preview() {
+  local name="${1:-}"
+  [[ -z "$name" ]] && return 0
+
+  local file
+  file="$(sessions_dir)/$(config_name_for "$name").yaml"
+
+  if tmux has-session -t "=$name" 2>/dev/null; then
+    printf '  \e[32m●\e[0m RUNNING\n'
+  else
+    printf '  ○ not running\n'
+  fi
+  printf '  ───────────────────────\n'
+
+  if [[ ! -f "$file" ]]; then
+    printf '  (config not found)\n'
+    return 0
+  fi
+
+  if command -v yq &>/dev/null; then
+    local date_str n_windows n_panes
+    date_str=$(yq -r '.created_at // ""' "$file" 2>/dev/null | cut -c1-10)
+    n_windows=$(yq -r '.windows | length' "$file" 2>/dev/null)
+    n_panes=$(yq -r '[.windows[].panes | length] | add // 0' "$file" 2>/dev/null)
+    printf '  Saved:  %s\n' "$date_str"
+    printf '  Layout: %sw · %sp\n\n' "${n_windows:-0}" "${n_panes:-0}"
+    yq -r '.windows[] | "  \(.index): \(.name)  (\(.panes|length) pane(s))"' "$file" 2>/dev/null
+  else
+    cat "$file"
+  fi
+}
+
 pick_config() {
   local dir
   dir="$(sessions_dir)"
@@ -317,15 +349,31 @@ pick_config() {
     echo "tsm restore: no saved configs in $dir." >&2
     return 1
   fi
-  local dir_q
-  printf -v dir_q '%q' "$dir"
+
+  local action_file
+  action_file="$(mktemp /tmp/tsm_restore.XXXXXX)"
+  trap 'rm -f "$action_file"' RETURN
+
+  local self_q
+  printf -v self_q '%q' "$0"
+
   local picked
   picked=$(echo "$configs" | fzf --ansi --reverse --no-sort \
-    --prompt="restore session > " \
-    --preview="yq -r '.windows[] | \"  \(.index): \(.name)  (\(.panes|length) pane(s))\"' ${dir_q}/{}.yaml 2>/dev/null | grep . || cat ${dir_q}/{}.yaml 2>/dev/null" \
-    --preview-window='right:40%:wrap') || return 1
-  [[ -z "$picked" ]] && return 1
-  echo "$picked"
+    --prompt="restore > " \
+    --header=$'↑↓/jk:move  ↵:restore (layout only)  W:restore+commands  q/ESC:cancel' \
+    --preview="$self_q restore __preview {}" \
+    --preview-window='right:45%:wrap' \
+    --bind "j:down,k:up" \
+    --bind "q:abort,esc:abort" \
+    --bind "W:execute-silent(printf 'with-commands' > '$action_file')+accept" \
+  ) || { rm -f "$action_file"; return 1; }
+  [[ -z "$picked" ]] && { rm -f "$action_file"; return 1; }
+
+  local mode="layout-only"
+  [[ -s "$action_file" ]] && mode="$(<"$action_file")"
+  rm -f "$action_file"
+
+  printf '%s\n%s\n' "$picked" "$mode"
 }
 
 do_restore() {
@@ -340,7 +388,11 @@ do_restore() {
   done
 
   if [[ -z "$name" ]]; then
-    name="$(pick_config)" || return 0
+    local pick_result
+    pick_result="$(pick_config)" || return 0
+    name="${pick_result%%$'\n'*}"
+    local pick_mode="${pick_result##*$'\n'}"
+    [[ "$pick_mode" == "with-commands" ]] && with_commands=true
   fi
 
   local file
@@ -1302,9 +1354,10 @@ case "${1:-}" in
     esac
     ;;
   restore)
-    check_deps
-    shift
-    do_restore "$@"
+    case "${2:-}" in
+      __preview) do_restore_preview "${3:-}" ;;
+      *)         check_deps; shift; do_restore "$@" ;;
+    esac
     ;;
   log)
     case "${2:-}" in

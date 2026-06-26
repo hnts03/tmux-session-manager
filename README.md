@@ -134,8 +134,10 @@ tsm help            # show help
 | `n` / `N` | Create new session |
 | `r` | Rename selected session |
 | `s` | Save selected session layout |
-| `R` | Restore a saved session (opens picker) |
+| `R` | Open restore menu (shows saved date, window/pane count, running status) |
+| `W` | *(inside restore menu)* Restore layout + re-run saved commands |
 | `l` | Toggle pane logging for the selected session's active pane |
+| `t` | Create new session from a template (opens template picker) |
 | `E` | Detach current tmux client |
 | `q` / `ESC` | Quit |
 
@@ -221,8 +223,8 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] `tsm template save <name>` from current session, `tsm template apply <name>` to spawn a new session
 
 **2. Restore UX**
-- [ ] Dedicated restore menu — `R` key in main picker opens a full restore UI (not just a plain fzf list)
-- [ ] Restore picker shows running indicator, last-saved date, window/pane count in preview
+- [x] Dedicated restore menu — `R` key in main picker opens a full restore UI (not just a plain fzf list)
+- [x] Restore picker shows running indicator, last-saved date, window/pane count in preview
 
 **3. Picker numeric shortcuts**
 - [ ] Press `1`–`9` in the main fzf picker to instantly attach to the nth session (no Enter needed)
