@@ -896,8 +896,27 @@ do_save_delete() {
   fi
 }
 
+do_save_all() {
+  local sessions saved=0 failed=0
+  sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null)
+  if [[ -z "$sessions" ]]; then
+    echo "tsm save --all: no running sessions." >&2
+    return 1
+  fi
+  while IFS= read -r s; do
+    if do_save "$s" --quiet 2>/dev/null; then
+      (( saved++ )) || true
+    else
+      (( failed++ )) || true
+      echo "tsm save --all: failed to save '$s'" >&2
+    fi
+  done <<< "$sessions"
+  echo "tsm: saved $saved session(s)${failed:+ ($failed failed)}."
+}
+
 do_save() {
-  local target="${1:-}"
+  local target="${1:-}" quiet=false
+  [[ "${2:-}" == "--quiet" ]] && quiet=true
 
   if [[ -z "$target" ]]; then
     if ! in_tmux; then
@@ -917,7 +936,7 @@ do_save() {
   mkdir -p "$dir"
   local out="$dir/$(config_name_for "$target").yaml"
 
-  if [[ -f "$out" ]]; then
+  if [[ -f "$out" ]] && ! $quiet; then
     local stored_name=""
     command -v yq &>/dev/null && stored_name=$(yq -r '.name // ""' "$out" 2>/dev/null)
     if [[ -n "$stored_name" && "$stored_name" != "$target" ]]; then
@@ -1299,6 +1318,16 @@ do_main_preview() {
     pane_ref="${pane_line%% *}"
     win_name="${pane_line#* }"
 
+    local logged_panes
+    logged_panes=$(tmux list-panes -s -t "=$name" \
+      -F '#{pane_pipe} #{window_index}.#{pane_index}' 2>/dev/null | \
+      awk '$1==1{printf sep $2; sep=","} END{if(NR>0)print ""}')
+    if [[ -n "$logged_panes" ]]; then
+      printf '\033[32m  ⏺ logging: %s\033[0m\n' "$logged_panes"
+    else
+      printf '\033[2m  ○ not logging\033[0m\n'
+    fi
+
     printf '\033[2m  [%s] · pane %d/%d  < prev · next >\033[0m\n' \
       "$win_name" "$(( pane_idx + 1 ))" "$total_panes"
     tmux capture-pane -p -e -t "$name:$pane_ref" 2>/dev/null
@@ -1330,7 +1359,7 @@ main() {
 
   local create_token="__create__"
   local header
-  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle  t:template  1-9:attach nth\n[/]:preview size  </>:prev/next pane'
+  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  S:save all  R:restore-saved  l:log-toggle  t:template  1-9:attach nth\n[/]:preview size  </>:prev/next pane'
 
   local self_q
   printf -v self_q '%q' "$0"
@@ -1398,6 +1427,7 @@ main() {
         --bind "N:execute-silent(printf 'new' > '$action_file')+abort" \
         --bind "r:execute-silent({ printf 'rename:'; printf '%s' {1}; } > '$action_file')+abort" \
         --bind "s:execute-silent({ printf 'save:'; printf '%s' {1}; } > '$action_file')+abort" \
+        --bind "S:execute-silent(printf 'save-all' > '$action_file')+abort" \
         --bind "R:execute-silent(printf 'restore' > '$action_file')+abort" \
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
         --bind "l:execute-silent({ printf 'log-toggle:'; printf '%s' {1}; } > '$action_file')+abort" \
@@ -1429,6 +1459,11 @@ main() {
       [[ "$target" == "$create_token" ]] && { main; return; }
       do_save "$target" || true
       sleep 0.4
+      main
+      ;;
+    save-all)
+      do_save_all || true
+      sleep 1
       main
       ;;
     restore)   do_restore ;;
@@ -1687,6 +1722,7 @@ case "${1:-}" in
     case "${2:-}" in
       --list)   do_save_list ;;
       --delete) check_deps; do_save_delete "${3:-}" ;;
+      --all)    check_deps; do_save_all ;;
       *)        check_deps; do_save "${2:-}" ;;
     esac
     ;;
