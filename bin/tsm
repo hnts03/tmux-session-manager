@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.6"
+VERSION="0.4.7"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -1321,7 +1321,7 @@ do_main_preview() {
     local logged_panes
     logged_panes=$(tmux list-panes -s -t "=$name" \
       -F '#{pane_pipe} #{window_index}.#{pane_index}' 2>/dev/null | \
-      awk '$1==1{printf sep $2; sep=","} END{if(NR>0)print ""}')
+      awk '$1==1{printf "%s%s", sep, $2; sep=","} END{if(NR>0)print ""}')
     if [[ -n "$logged_panes" ]]; then
       printf '\033[32m  ⏺ logging: %s\033[0m\n' "$logged_panes"
     else

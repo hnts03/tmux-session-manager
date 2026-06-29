@@ -41,7 +41,7 @@ brew install tsm
 ### apt (Debian / Ubuntu)
 
 ```sh
-wget https://github.com/hnts03/tmux-session-manager/releases/latest/download/tsm_0.4.6_all.deb
+wget https://github.com/hnts03/tmux-session-manager/releases/latest/download/tsm_0.4.7_all.deb
 sudo apt install ./tsm_0.4.5_all.deb
 ```
 
