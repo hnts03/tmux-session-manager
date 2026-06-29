@@ -1382,7 +1382,7 @@ main() {
         --header="$header" \
         --preview="$self_q __main_preview {1} '$pane_nav_file'" \
         --preview-window='right:50%:nowrap' \
-        --bind "one-second:refresh-preview" \
+        --bind "every(1):refresh-preview" \
         --bind "focus:execute-silent(printf '0' > '$pane_nav_file')+refresh-preview" \
         --bind "<:execute-silent(idx=\$(cat '$pane_nav_file' 2>/dev/null || echo 0); [ \"\$idx\" -gt 0 ] && printf '%s' \$(( idx - 1 )) > '$pane_nav_file' || true)+refresh-preview" \
         --bind ">:execute-silent(idx=\$(cat '$pane_nav_file' 2>/dev/null || echo 0); printf '%s' \$(( idx + 1 )) > '$pane_nav_file')+refresh-preview" \
