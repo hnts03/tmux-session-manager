@@ -144,6 +144,8 @@ tsm help            # show help
 | `l` | Toggle pane logging for the selected session's active pane |
 | `t` | Create new session from a template (opens template picker) |
 | `E` | Detach current tmux client |
+| `<` / `>` | Cycle through panes of the previewed session (preview auto-refreshes every second) |
+| `[` / `]` | Shrink / grow the preview pane (30% → 50% → 70%) |
 | `q` / `ESC` | Quit |
 
 ---
