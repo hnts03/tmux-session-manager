@@ -1270,16 +1270,24 @@ do_main_preview() {
     printf '  Create a new session\n'
     return 0
   fi
-  tmux list-windows -t "=$name" \
-    -F "  #{window_index}: #{window_name}  (#{window_panes} panes)" 2>/dev/null || \
-    printf '  (session not running)\n'
-  if command -v yq &>/dev/null; then
-    local file
-    file="$(sessions_dir)/$(config_name_for "$name").yaml"
-    if [[ -f "$file" ]]; then
-      local desc
-      desc=$(yq -r '.description // ""' "$file" 2>/dev/null)
-      [[ -n "$desc" ]] && printf '\n  ─────────\n  %s\n' "$desc"
+  if tmux has-session -t "=$name" 2>/dev/null; then
+    local pane_id win_info
+    pane_id=$(tmux display-message -t "$name" -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null)
+    win_info=$(tmux display-message -t "$name" -p '#I:#W' 2>/dev/null)
+    printf '\033[2m  [%s]\033[0m\n' "$win_info"
+    tmux capture-pane -p -e -t "$pane_id" 2>/dev/null
+  else
+    printf '  \033[2m(not running)\033[0m\n'
+    if command -v yq &>/dev/null; then
+      local file
+      file="$(sessions_dir)/$(config_name_for "$name").yaml"
+      if [[ -f "$file" ]]; then
+        local desc
+        desc=$(yq -r '.description // ""' "$file" 2>/dev/null)
+        [[ -n "$desc" ]] && printf '\n  %s\n' "$desc"
+        printf '\n'
+        yq -r '.windows[] | "  \(.index): \(.name)  (\(.panes|length) pane(s))"' "$file" 2>/dev/null
+      fi
     fi
   fi
 }
@@ -1345,7 +1353,7 @@ main() {
         --prompt="tmux session > " \
         --header="$header" \
         --preview="$self_q __main_preview {1}" \
-        --preview-window='right:40%:wrap' \
+        --preview-window='right:50%:nowrap' \
         --bind "enter:accept" \
         --bind "space:accept" \
         --bind "j:down,k:up" \
