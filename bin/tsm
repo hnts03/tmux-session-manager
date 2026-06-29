@@ -1330,7 +1330,7 @@ main() {
 
   local create_token="__create__"
   local header
-  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle  t:template  1-9:attach nth'
+  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  R:restore-saved  l:log-toggle  t:template  1-9:attach nth\n[/]:preview size  </>:prev/next pane'
 
   local self_q
   printf -v self_q '%q' "$0"
@@ -1390,6 +1390,8 @@ main() {
         --bind "space:accept" \
         --bind "j:down,k:up" \
         --bind "q:abort,esc:abort" \
+        --bind "[:change-preview-window(70%:nowrap|50%:nowrap|30%:nowrap)" \
+        --bind "]:change-preview-window(30%:nowrap|50%:nowrap|70%:nowrap)" \
         --bind "d:execute-silent({ printf 'delete:'; printf '%s' {1}; } > '$action_file')+abort" \
         --bind "backspace:execute-silent({ printf 'delete:'; printf '%s' {1}; } > '$action_file')+abort" \
         --bind "n:execute-silent(printf 'new' > '$action_file')+abort" \
