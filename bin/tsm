@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.5"
+VERSION="0.4.6"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -1359,7 +1359,7 @@ main() {
 
   local create_token="__create__"
   local header
-  header=$'↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  S:save all  R:restore-saved  l:log-toggle  t:template  1-9:attach nth\n[/]:preview size  </>:prev/next pane'
+  header=$'↑↓/jk:move  ↵:attach  d:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  S:save all  R:restore-saved  l:log-toggle  t:template  1-9:attach nth\n[/]:preview size  </>:prev/next pane'
 
   local self_q
   printf -v self_q '%q' "$0"
@@ -1421,13 +1421,12 @@ main() {
         --bind "q:abort,esc:abort" \
         --bind "[:change-preview-window(70%:nowrap|50%:nowrap|30%:nowrap)" \
         --bind "]:change-preview-window(30%:nowrap|50%:nowrap|70%:nowrap)" \
-        --bind "d:execute-silent({ printf 'delete:'; printf '%s' {1}; } > '$action_file')+abort" \
-        --bind "backspace:execute-silent({ printf 'delete:'; printf '%s' {1}; } > '$action_file')+abort" \
+        --bind "d:execute(printf '\n  \033[1;31m⚠\033[0m  Delete \033[1m{1}\033[0m? [y/N]  '; read -r _a < /dev/tty; [[ \$_a == [yY] ]] && printf 'delete:%s' {1} > '$action_file' || printf 'cancel' > '$action_file')+abort" \
         --bind "n:execute-silent(printf 'new' > '$action_file')+abort" \
         --bind "N:execute-silent(printf 'new' > '$action_file')+abort" \
         --bind "r:execute-silent({ printf 'rename:'; printf '%s' {1}; } > '$action_file')+abort" \
         --bind "s:execute-silent({ printf 'save:'; printf '%s' {1}; } > '$action_file')+abort" \
-        --bind "S:execute-silent(printf 'save-all' > '$action_file')+abort" \
+        --bind "S:execute(_n=\$(tmux list-sessions -F '#{session_name}' 2>/dev/null | wc -l | tr -d ' '); printf '\n  Save all %s session(s)? [y/N]  ' \"\$_n\"; read -r _a < /dev/tty; [[ \$_a == [yY] ]] && printf 'save-all' > '$action_file' || printf 'cancel' > '$action_file')+abort" \
         --bind "R:execute-silent(printf 'restore' > '$action_file')+abort" \
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
         --bind "l:execute-silent({ printf 'log-toggle:'; printf '%s' {1}; } > '$action_file')+abort" \
@@ -1466,6 +1465,8 @@ main() {
       sleep 1
       main
       ;;
+    cancel) main ;;
+
     restore)   do_restore ;;
     template)
       do_template_apply || { sleep 0.3; main; return; }

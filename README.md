@@ -16,7 +16,7 @@ $ tsm
   [+] Create new session           │
 ──────────────────────────────────────────────────────
   tmux session > _
-  ↑↓/jk:move  ↵:attach  d/⌫:delete  n:new  E:detach  q/ESC:quit
+  ↑↓/jk:move  ↵:attach  d:delete  n:new  E:detach  q/ESC:quit
   r:rename  s:save  R:restore-saved
 ```
 
@@ -41,7 +41,7 @@ brew install tsm
 ### apt (Debian / Ubuntu)
 
 ```sh
-wget https://github.com/hnts03/tmux-session-manager/releases/latest/download/tsm_0.4.5_all.deb
+wget https://github.com/hnts03/tmux-session-manager/releases/latest/download/tsm_0.4.6_all.deb
 sudo apt install ./tsm_0.4.5_all.deb
 ```
 
@@ -135,10 +135,11 @@ tsm help            # show help
 | `↑` / `↓` or `k` / `j` | Navigate |
 | `1`–`9` | Attach to nth session instantly (no Enter needed) |
 | `Enter` / `Space` | Attach to selected session |
-| `d` / `Backspace` | Delete selected session |
+| `d` | Delete selected session (confirmation prompt) |
 | `n` / `N` | Create new session |
 | `r` | Rename selected session |
 | `s` | Save selected session layout |
+| `S` | Save all running sessions (confirmation prompt) |
 | `R` | Open restore menu (shows saved date, window/pane count, running status) |
 | `W` | *(inside restore menu)* Restore layout + re-run saved commands |
 | `l` | Toggle pane logging for the selected session's active pane |
