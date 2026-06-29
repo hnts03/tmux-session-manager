@@ -320,10 +320,16 @@ do_restore_preview() {
   file="$(sessions_dir)/$(config_name_for "$name").yaml"
 
   if tmux has-session -t "=$name" 2>/dev/null; then
-    printf '  \e[32m●\e[0m RUNNING\n'
-  else
-    printf '  ○ not running\n'
+    local pane_id win_info
+    pane_id=$(tmux display-message -t "$name" \
+      -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null)
+    win_info=$(tmux display-message -t "$name" -p '#I:#W' 2>/dev/null)
+    printf '  \e[32m●\e[0m RUNNING  \033[2m[%s]\033[0m\n' "$win_info"
+    tmux capture-pane -p -e -t "$pane_id" 2>/dev/null
+    return 0
   fi
+
+  printf '  ○ not running\n'
   printf '  ───────────────────────\n'
 
   if [[ ! -f "$file" ]]; then
@@ -342,6 +348,7 @@ do_restore_preview() {
   else
     cat "$file"
   fi
+  return 0
 }
 
 pick_config() {
@@ -1266,16 +1273,35 @@ do_template_list() {
 
 do_main_preview() {
   local name="${1:-}"
+  local pane_nav_file="${2:-}"
   if [[ -z "$name" || "$name" == "__create__" ]]; then
     printf '  Create a new session\n'
     return 0
   fi
   if tmux has-session -t "=$name" 2>/dev/null; then
-    local pane_id win_info
-    pane_id=$(tmux display-message -t "$name" -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null)
-    win_info=$(tmux display-message -t "$name" -p '#I:#W' 2>/dev/null)
-    printf '\033[2m  [%s]\033[0m\n' "$win_info"
-    tmux capture-pane -p -e -t "$pane_id" 2>/dev/null
+    # Collect all panes across all windows: "win_idx.pane_idx win_name"
+    local pane_list total_panes pane_idx
+    pane_list=$(tmux list-panes -s -t "=$name" \
+      -F '#{window_index}.#{pane_index} #{window_name}' 2>/dev/null)
+    total_panes=$(printf '%s\n' "$pane_list" | wc -l | tr -d ' ')
+    [[ -z "$pane_list" || "$total_panes" -eq 0 ]] && { printf '  (no panes)\n'; return 0; }
+
+    pane_idx=0
+    if [[ -n "$pane_nav_file" && -f "$pane_nav_file" ]]; then
+      local _raw
+      _raw=$(cat "$pane_nav_file" 2>/dev/null)
+      [[ "$_raw" =~ ^[0-9]+$ ]] && pane_idx="$_raw"
+    fi
+    [[ "$pane_idx" -ge "$total_panes" ]] && pane_idx=$(( total_panes - 1 ))
+
+    local pane_line pane_ref win_name
+    pane_line=$(printf '%s\n' "$pane_list" | sed -n "$(( pane_idx + 1 ))p")
+    pane_ref="${pane_line%% *}"
+    win_name="${pane_line#* }"
+
+    printf '\033[2m  [%s] · pane %d/%d  < prev · next >\033[0m\n' \
+      "$win_name" "$(( pane_idx + 1 ))" "$total_panes"
+    tmux capture-pane -p -e -t "$name:$pane_ref" 2>/dev/null
   else
     printf '  \033[2m(not running)\033[0m\n'
     if command -v yq &>/dev/null; then
@@ -1290,15 +1316,17 @@ do_main_preview() {
       fi
     fi
   fi
+  return 0
 }
 
 # ─── main fzf menu ───────────────────────────────────────────────────────────
 
 main() {
-  local action_file
+  local action_file pane_nav_file
   action_file="$(mktemp /tmp/tsm_action.XXXXXX)"
-  # ensure cleanup on exit
-  trap 'rm -f "$action_file"' RETURN
+  pane_nav_file="$(mktemp /tmp/tsm_pane_nav.XXXXXX)"
+  printf '0' > "$pane_nav_file"
+  trap 'rm -f "$action_file" "$pane_nav_file"' RETURN
 
   local create_token="__create__"
   local header
@@ -1352,8 +1380,12 @@ main() {
         "${fzf_header_lines[@]}" \
         --prompt="tmux session > " \
         --header="$header" \
-        --preview="$self_q __main_preview {1}" \
+        --preview="$self_q __main_preview {1} '$pane_nav_file'" \
         --preview-window='right:50%:nowrap' \
+        --bind "one-second:refresh-preview" \
+        --bind "focus:execute-silent(printf '0' > '$pane_nav_file')+refresh-preview" \
+        --bind "<:execute-silent(idx=\$(cat '$pane_nav_file' 2>/dev/null || echo 0); [ \"\$idx\" -gt 0 ] && printf '%s' \$(( idx - 1 )) > '$pane_nav_file' || true)+refresh-preview" \
+        --bind ">:execute-silent(idx=\$(cat '$pane_nav_file' 2>/dev/null || echo 0); printf '%s' \$(( idx + 1 )) > '$pane_nav_file')+refresh-preview" \
         --bind "enter:accept" \
         --bind "space:accept" \
         --bind "j:down,k:up" \
@@ -1604,7 +1636,7 @@ unset _tsm_cmd_key
 
 case "${1:-}" in
   "")            check_deps; main ;;
-  __main_preview) do_main_preview "${2:-}" ;;
+  __main_preview) do_main_preview "${2:-}" "${3:-}" ;;
   new)
     check_deps
     if [[ -n "${2:-}" ]]; then
