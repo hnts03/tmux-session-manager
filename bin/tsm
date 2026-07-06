@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.7"
+VERSION="0.4.8"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -622,7 +622,7 @@ do_log_start() {
     fi
   fi
 
-  local self="${TSM_SELF:-$0}"
+  local self="${TSM_SELF:-$(command -v "$0" 2>/dev/null || printf '%s' "$0")}"
   local max="${TSM_LOG_MAX_BYTES:-$_TSM_LOG_MAX_BYTES}"
 
   local self_q
@@ -1362,7 +1362,7 @@ main() {
   header=$'↑↓/jk:move  ↵:attach  d:delete  n:new  E:detach  q/ESC:quit\nr:rename  s:save  S:save all  R:restore-saved  l:log-toggle  t:template  1-9:attach nth\n[/]:preview size  </>:prev/next pane'
 
   local self_q
-  printf -v self_q '%q' "$0"
+  printf -v self_q '%q' "$(command -v "$0" 2>/dev/null || printf '%s' "$0")"
 
   # Session list: field1=raw-name (for {1} bindings), field2=display string (shown via --with-nth=2)
   # First line of output is the column header (used with --header-lines=1).
@@ -1429,7 +1429,7 @@ main() {
         --bind "S:execute(_n=\$(tmux list-sessions -F '#{session_name}' 2>/dev/null | wc -l | tr -d ' '); printf '\n  Save all %s session(s)? [y/N]  ' \"\$_n\"; read -r _a < /dev/tty; [[ \$_a == [yY] ]] && printf 'save-all' > '$action_file' || printf 'cancel' > '$action_file')+abort" \
         --bind "R:execute-silent(printf 'restore' > '$action_file')+abort" \
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
-        --bind "l:execute-silent({ printf 'log-toggle:'; printf '%s' {1}; } > '$action_file')+abort" \
+        --bind "l:execute-silent(_p=\$(tmux display-message -t '={1}' -p '#{pane_pipe}' 2>/dev/null); if [ \"\$_p\" = 1 ]; then $self_q log stop '{1}' 2>/dev/null; else $self_q log start '{1}' 2>/dev/null; fi)+refresh-preview" \
         --bind "t:execute-silent(printf 'template' > '$action_file')+abort" \
         "${num_binds[@]}" \
       || true
@@ -1473,24 +1473,6 @@ main() {
       ;;
     new)       do_new ;;
     detach)    do_detach ;;
-    log-toggle:*)
-      local target="${action#log-toggle:}"
-      [[ "$target" == "$create_token" ]] && { main; return; }
-      local combined
-      combined=$(tmux display-message -t "=$target" \
-        -p '#{session_name}:#{window_index}.#{pane_index}|#{pane_pipe}' 2>/dev/null) || {
-        echo "Session '$target' is not running." >&2; sleep 1; main; return
-      }
-      local pane_target="${combined%|*}"
-      local is_piped="${combined##*|}"
-      if [[ "$is_piped" == "1" ]]; then
-        do_log_stop "$pane_target"
-      else
-        do_log_start "$pane_target"
-      fi
-      sleep 0.4
-      main
-      ;;
     attach:*)
       local target="${action#attach:}"
       if [[ -n "$target" ]]; then
