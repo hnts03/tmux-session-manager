@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.8"
+VERSION="0.4.9"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -1429,7 +1429,7 @@ main() {
         --bind "S:execute(_n=\$(tmux list-sessions -F '#{session_name}' 2>/dev/null | wc -l | tr -d ' '); printf '\n  Save all %s session(s)? [y/N]  ' \"\$_n\"; read -r _a < /dev/tty; [[ \$_a == [yY] ]] && printf 'save-all' > '$action_file' || printf 'cancel' > '$action_file')+abort" \
         --bind "R:execute-silent(printf 'restore' > '$action_file')+abort" \
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
-        --bind "l:execute-silent(_p=\$(tmux display-message -t '={1}' -p '#{pane_pipe}' 2>/dev/null); if [ \"\$_p\" = 1 ]; then $self_q log stop '{1}' 2>/dev/null; else $self_q log start '{1}' 2>/dev/null; fi)+refresh-preview" \
+        --bind "l:execute-silent(_any=\$(tmux list-panes -s -t '={1}' -F '#{{pane_pipe}}' 2>/dev/null | awk '/^1\$/{c++} END{print c+0}'); if [ \"\${_any:-0}\" -gt 0 ]; then tmux list-panes -s -t '={1}' -F '#{{pane_pipe}}:#{{session_name}}:#{{window_index}}.#{{pane_index}}' 2>/dev/null | awk -F: '\$1==1{print \$2\":\"\$3}' | while IFS= read -r _p; do tmux pipe-pane -t \"\$_p\" 2>/dev/null; done; else $self_q log start '{1}' 2>/dev/null; fi)+refresh-preview" \
         --bind "t:execute-silent(printf 'template' > '$action_file')+abort" \
         "${num_binds[@]}" \
       || true
