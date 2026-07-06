@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.9"
+VERSION="0.4.10"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -655,6 +655,30 @@ do_log_stop() {
     tmux pipe-pane -t "$p"
     echo "Stopped: $p"
   done <<< "$panes"
+}
+
+do_log_toggle() {
+  local arg="${1:-}"
+  # Check if ANY pane in the session is currently being logged
+  local session
+  if [[ "$arg" == *:* ]]; then
+    session="${arg%%:*}"
+  else
+    session="$arg"
+  fi
+  local any_logged
+  any_logged=$(tmux list-panes -s -t "=$session" \
+    -F '#{pane_pipe} #{session_name}:#{window_index}.#{pane_index}' 2>/dev/null | \
+    awk '$1==1{print $2}')
+  if [[ -n "$any_logged" ]]; then
+    while IFS= read -r p; do
+      [[ -z "$p" ]] && continue
+      tmux pipe-pane -t "$p"
+      echo "Stopped: $p"
+    done <<< "$any_logged"
+  else
+    do_log_start "$arg"
+  fi
 }
 
 do_log_status() {
@@ -1429,7 +1453,7 @@ main() {
         --bind "S:execute(_n=\$(tmux list-sessions -F '#{session_name}' 2>/dev/null | wc -l | tr -d ' '); printf '\n  Save all %s session(s)? [y/N]  ' \"\$_n\"; read -r _a < /dev/tty; [[ \$_a == [yY] ]] && printf 'save-all' > '$action_file' || printf 'cancel' > '$action_file')+abort" \
         --bind "R:execute-silent(printf 'restore' > '$action_file')+abort" \
         --bind "E:execute-silent(printf 'detach' > '$action_file')+abort" \
-        --bind "l:execute-silent(_any=\$(tmux list-panes -s -t '={1}' -F '#{{pane_pipe}}' 2>/dev/null | awk '/^1\$/{c++} END{print c+0}'); if [ \"\${_any:-0}\" -gt 0 ]; then tmux list-panes -s -t '={1}' -F '#{{pane_pipe}}:#{{session_name}}:#{{window_index}}.#{{pane_index}}' 2>/dev/null | awk -F: '\$1==1{print \$2\":\"\$3}' | while IFS= read -r _p; do tmux pipe-pane -t \"\$_p\" 2>/dev/null; done; else $self_q log start '{1}' 2>/dev/null; fi)+refresh-preview" \
+        --bind "l:execute-silent($self_q log toggle '{1}' 2>/dev/null)+refresh-preview" \
         --bind "t:execute-silent(printf 'template' > '$action_file')+abort" \
         "${num_binds[@]}" \
       || true
@@ -1719,6 +1743,7 @@ case "${1:-}" in
     case "${2:-}" in
       start)   check_deps; shift 2; do_log_start "$@" ;;
       stop)    check_deps; do_log_stop   "${3:-}" ;;
+      toggle)  check_deps; do_log_toggle "${3:-}" ;;
       status)  check_deps; do_log_status ;;
       list)    do_log_list "${3:-}" ;;
       show)    check_deps; shift 2; do_log_show "$@" ;;
