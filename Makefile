@@ -1,4 +1,4 @@
-VERSION  := 0.3.1
+VERSION  := $(shell grep '^VERSION=' bin/tsm | cut -d'"' -f2)
 PKG_NAME := tsm
 DEB_DIR  := packaging/debian
 DEB_BIN  := $(DEB_DIR)/usr/local/bin
