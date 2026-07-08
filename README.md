@@ -118,6 +118,8 @@ tsm save [name]     # save session to ~/.config/tsm/sessions/<name>.yaml
 tsm save --list     # list saved configs with metadata (date, windows, panes)
 tsm save --delete [name]  # delete a saved config (fzf picker if name omitted)
 tsm restore [name]                 # restore a saved session (layout only)
+tsm restore --all                  # restore all saved sessions at once
+tsm restore --all --with-commands  # restore all + re-run saved commands
 tsm restore --with-commands [name] # restore layout + re-run saved commands
                                    # (skips shells: bash zsh sh fish dash tmux)
 tsm log grep <pattern> [target]    # search within log file (default: current pane)

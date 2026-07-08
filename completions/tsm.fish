@@ -53,8 +53,9 @@ complete -c tsm -n "__fish_seen_subcommand_from save" -a "(__tsm_sessions)"
 complete -c tsm -n "__fish_seen_subcommand_from save" -l list   -d "List saved configs"
 complete -c tsm -n "__fish_seen_subcommand_from save" -l delete -d "Delete a saved config"
 
-# restore: saved config names + --with-commands
+# restore: saved config names + flags
 complete -c tsm -n "__fish_seen_subcommand_from restore" -a "(__tsm_saved_configs)"
+complete -c tsm -n "__fish_seen_subcommand_from restore" -l all          -d "Restore all saved sessions"
 complete -c tsm -n "__fish_seen_subcommand_from restore" -l with-commands -d "Re-run saved commands on restore"
 
 # log: actions
