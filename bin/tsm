@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.12"
+VERSION="0.4.13"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -393,12 +393,13 @@ pick_config() {
 }
 
 do_restore() {
-  local with_commands=false
+  local with_commands=false no_attach=false
   local name=""
 
   for arg in "$@"; do
     case "$arg" in
       --with-commands) with_commands=true ;;
+      --no-attach)     no_attach=true ;;
       *) [[ -z "$name" ]] && name="$arg" ;;
     esac
   done
@@ -483,10 +484,12 @@ do_restore() {
   [[ -n "$active_window" ]] && tmux select-window -t "$session:$active_window"
 
   echo "Restored: $session"
-  if in_tmux; then
-    tmux switch-client -t "=$session"
-  else
-    tmux attach-session -t "=$session"
+  if ! $no_attach; then
+    if in_tmux; then
+      tmux switch-client -t "=$session"
+    else
+      tmux attach-session -t "=$session"
+    fi
   fi
 }
 
@@ -954,20 +957,13 @@ do_restore_all() {
   for file in "${files[@]}"; do
     local name
     name=$(basename "$file" .yaml)
-    if $with_commands; then
-      if do_restore --with-commands "$name" 2>/dev/null; then
-        (( restored++ )) || true
-      else
-        (( failed++ )) || true
-        echo "tsm restore --all: failed to restore '$name'" >&2
-      fi
+    local restore_args=("--no-attach" "$name")
+    $with_commands && restore_args=("--no-attach" "--with-commands" "$name")
+    if ( do_restore "${restore_args[@]}" 2>/dev/null ); then
+      (( restored++ )) || true
     else
-      if do_restore "$name" 2>/dev/null; then
-        (( restored++ )) || true
-      else
-        (( failed++ )) || true
-        echo "tsm restore --all: failed to restore '$name'" >&2
-      fi
+      (( failed++ )) || true
+      echo "tsm restore --all: failed to restore '$name'" >&2
     fi
   done
   echo "tsm: restored $restored session(s)${failed:+ ($failed failed)}."
