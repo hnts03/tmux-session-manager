@@ -122,6 +122,10 @@ tsm restore --all                  # restore all saved sessions at once
 tsm restore --all --with-commands  # restore all + re-run saved commands
 tsm restore --with-commands [name] # restore layout + re-run saved commands
                                    # (skips shells: bash zsh sh fish dash tmux)
+tsm log start [target]             # start logging current pane (or given target)
+tsm log start --all                # start logging all panes in current session
+tsm log start --all-sessions       # start logging all unlogged panes across all sessions
+tsm log stop --all-sessions        # stop logging all logged panes across all sessions
 tsm log grep <pattern> [target]    # search within log file (default: current pane)
 tsm log grep --plain <pattern>     # strip ANSI escapes before matching
 tsm log grep --all <pattern>       # search all log files; prefix each match with session:window.pane

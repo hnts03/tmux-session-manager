@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.13"
+VERSION="0.4.14"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -603,6 +603,9 @@ _panes_for_target() {
     session=$(current_session)
     tmux list-panes -s -t "$session" \
       -F '#{session_name}:#{window_index}.#{pane_index}'
+  elif [[ "$arg" == "--all-sessions" ]]; then
+    tmux list-panes -a \
+      -F '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null
   else
     resolve_pane_target "$arg" || return 1
   fi
@@ -635,8 +638,16 @@ do_log_start() {
   panes=$(_panes_for_target "$arg") || return 1
 
   local ts_flag="$timestamp"
+  local skip_existing=false
+  [[ "$arg" == "--all-sessions" ]] && skip_existing=true
+
   while read -r p; do
     [[ -z "$p" ]] && continue
+    if $skip_existing; then
+      local piped
+      piped=$(tmux display-message -t "$p" -p '#{pane_pipe}' 2>/dev/null) || continue
+      [[ "$piped" == "1" ]] && continue
+    fi
     local file
     file=$(log_file_for "$p") || continue
     mkdir -p "$(dirname "$file")"
@@ -1033,7 +1044,19 @@ do_save() {
     done <<< "$windows"
   } > "$out"
 
-  echo "Saved: $out"
+  # Snapshot scrollback of panes not currently being logged
+  local snap_panes
+  snap_panes=$(tmux list-panes -s -t "=$target" \
+    -F '#{pane_pipe} #{session_name}:#{window_index}.#{pane_index}' 2>/dev/null)
+  while IFS=' ' read -r piped p; do
+    [[ -z "$p" || "$piped" == "1" ]] && continue
+    local snap_file
+    snap_file=$(log_file_for "$p") || continue
+    mkdir -p "$(dirname "$snap_file")"
+    tmux capture-pane -t "$p" -p -S - > "$snap_file" 2>/dev/null || true
+  done <<< "$snap_panes"
+
+  $quiet || echo "Saved: $out"
 }
 
 # ─── templates ───────────────────────────────────────────────────────────────
@@ -1790,9 +1813,11 @@ case "${1:-}" in
 tsm log <action>
 
 Actions:
-  start [--timestamp] [target|--all]
+  start [--timestamp] [target|--all|--all-sessions]
                          Start logging (--timestamp prepends [YYYY-MM-DDTHH:MM:SS] to each line)
-  stop  [target|--all]   Stop logging
+                         --all-sessions: start on all panes across all sessions (skips already-logging)
+  stop  [target|--all|--all-sessions]
+                         Stop logging (--all-sessions: stop all logged panes across all sessions)
   status                 Show panes currently being logged
   list  [session]        List log files (optionally filter by session)
   show  [target] [--plain]
