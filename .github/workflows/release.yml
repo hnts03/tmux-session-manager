@@ -62,5 +62,5 @@ jobs:
           git add Formula/tsm.rb
           git diff --cached --quiet && exit 0
           git commit -m "chore: update formula for ${{ github.ref_name }}"
-          git pull --rebase origin main
+          git pull --rebase --autostash origin main
           git push origin HEAD:main
