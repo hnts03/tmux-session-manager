@@ -209,6 +209,7 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 
 - [ ] `tsm restore --overwrite <name>` — kill all windows/panes of a running session and rebuild from a saved config. Deferred due to destructive nature; needs confirmation flow.
 - [ ] `tsm log auto on/off` — automatic logging via tmux hooks injected into the user's config. Deferred until manual mode + size cap are battle-tested.
+- [ ] `tsm save --auto-hook install/remove` — install cron job + tmux `client-detached` hook for automatic periodic saves. Deferred pending design decision on trigger timing and granularity.
 
 ### Future Works
 

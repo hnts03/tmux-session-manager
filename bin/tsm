@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.14"
+VERSION="0.4.15"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -477,6 +477,19 @@ do_restore() {
         fi
       done
     fi
+
+    # Print historical log path directly to each pane's TTY (no shell history pollution).
+    # Delayed 0.2s to let the shell finish startup before we write.
+    for ((pi=0; pi<n_panes; pi++)); do
+      local p_log_file
+      p_log_file=$(yq -r ".windows[$wi].panes[$pi].log_file // \"\"" "$file" 2>/dev/null)
+      [[ -z "$p_log_file" || "$p_log_file" == "null" || ! -f "$p_log_file" ]] && continue
+      local pane_tty
+      pane_tty=$(tmux display-message -t "${pane_targets[$pi]}" -p '#{pane_tty}' 2>/dev/null) || continue
+      [[ -z "$pane_tty" ]] && continue
+      ( sleep 0.2; printf '\033[2mtsm: recent working history → %s\033[0m\r\n' \
+        "$p_log_file" > "$pane_tty" 2>/dev/null ) &
+    done
 
     [[ "$w_active" == "true" ]] && active_window="$current_idx"
   done <<< "$windows_data"
@@ -1040,6 +1053,7 @@ do_save() {
         printf "        active: %s\n" "$(bool_from_flag "$p_active")"
         printf "        cwd: %s\n" "$(yaml_squote "$p_cwd")"
         printf "        command: %s\n" "$(yaml_squote "$p_cmd")"
+        printf "        log_file: %s\n" "$(yaml_squote "$(logs_dir)/$target/$w_idx.$p_idx.log")"
       done <<< "$panes"
     done <<< "$windows"
   } > "$out"
