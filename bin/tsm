@@ -5,14 +5,14 @@
 
 set -euo pipefail
 
-VERSION="0.4.15"
+VERSION="0.4.16"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
 _TSM_SESSIONS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/sessions"
 _TSM_LOGS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/tsm/logs"
 _TSM_LOG_MAX_BYTES=10485760
-_TSM_RESTORE_SKIP_COMMANDS=(bash zsh sh fish dash tmux)
+_TSM_RESTORE_SKIP_COMMANDS=(bash zsh sh fish dash tmux vim nvim top htop less)
 _TSM_AUTO_LOG=true
 
 # ─── dependency check ────────────────────────────────────────────────────────
@@ -93,6 +93,11 @@ resolve_pane_target() {
   echo "$target"
 }
 
+# build the log file path for a session/window/pane triple (pure string, no tmux calls)
+pane_log_path() {
+  echo "$(logs_dir)/$1/$2.$3.log"
+}
+
 # convert "session:window.pane" target to a log file path
 log_file_for() {
   local target="$1"
@@ -100,7 +105,7 @@ log_file_for() {
   session=$(tmux display-message -t "$target" -p '#{session_name}' 2>/dev/null) || return 1
   window=$(tmux display-message  -t "$target" -p '#{window_index}' 2>/dev/null) || return 1
   pane=$(tmux display-message    -t "$target" -p '#{pane_index}' 2>/dev/null) || return 1
-  echo "$(logs_dir)/$session/$window.$pane.log"
+  pane_log_path "$session" "$window" "$pane"
 }
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
@@ -285,6 +290,11 @@ do_config_tsm() {
 #   - fish
 #   - dash
 #   - tmux
+#   - vim
+#   - nvim
+#   - top
+#   - htop
+#   - less
 EOF
     echo "Created: $config_file"
   fi
@@ -1053,7 +1063,7 @@ do_save() {
         printf "        active: %s\n" "$(bool_from_flag "$p_active")"
         printf "        cwd: %s\n" "$(yaml_squote "$p_cwd")"
         printf "        command: %s\n" "$(yaml_squote "$p_cmd")"
-        printf "        log_file: %s\n" "$(yaml_squote "$(logs_dir)/$target/$w_idx.$p_idx.log")"
+        printf "        log_file: %s\n" "$(yaml_squote "$(pane_log_path "$target" "$w_idx" "$p_idx")")"
       done <<< "$panes"
     done <<< "$windows"
   } > "$out"
