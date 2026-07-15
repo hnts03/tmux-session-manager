@@ -121,7 +121,8 @@ tsm restore [name]                 # restore a saved session (layout only)
 tsm restore --all                  # restore all saved sessions at once
 tsm restore --all --with-commands  # restore all + re-run saved commands
 tsm restore --with-commands [name] # restore layout + re-run saved commands
-                                   # (skips shells: bash zsh sh fish dash tmux)
+                                   # (skips shells & full-screen apps:
+                                   #  bash zsh sh fish dash tmux vim nvim top htop less)
 tsm log start [target]             # start logging current pane (or given target)
 tsm log start --all                # start logging all panes in current session
 tsm log start --all-sessions       # start logging all unlogged panes across all sessions
@@ -174,6 +175,11 @@ restore_skip_commands:           # commands NOT re-run by --with-commands
   - fish
   - dash
   - tmux
+  - vim
+  - nvim
+  - top
+  - htop
+  - less
 ```
 
 Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `TSM_SESSIONS_DIR`, `TSM_LOGS_DIR`.
