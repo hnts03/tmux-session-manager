@@ -14,7 +14,12 @@ function __tsm_user_templates
     find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
 end
 
-set -l subcommands new ls kill rename config save restore log template clone doctor version help
+function __tsm_groups
+    set -l dir (test -n "$XDG_CONFIG_HOME"; and echo "$XDG_CONFIG_HOME"; or echo "$HOME/.config")/tsm/groups
+    find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
+end
+
+set -l subcommands new ls kill rename config save restore log template clone group doctor version help
 
 # disable file completion
 complete -c tsm -f
@@ -30,6 +35,7 @@ complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a restore -d 
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a log      -d "Pane output logging"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a template -d "Manage session templates"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a clone    -d "Duplicate a live session layout"
+complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a group    -d "Save/restore a named set of sessions"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a doctor   -d "Check deps, config, disk usage"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a version  -d "Show version"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a help    -d "Show help"
@@ -95,3 +101,16 @@ complete -c tsm -n "__fish_seen_subcommand_from template; and __fish_seen_subcom
 # template delete: user templates only
 complete -c tsm -n "__fish_seen_subcommand_from template; and __fish_seen_subcommand_from delete" \
     -a "(__tsm_user_templates)"
+
+# group: sub-actions
+set -l group_actions save restore list delete help
+complete -c tsm -n "__fish_seen_subcommand_from group; and not __fish_seen_subcommand_from $group_actions" -a save    -d "Save a set of sessions as a group"
+complete -c tsm -n "__fish_seen_subcommand_from group; and not __fish_seen_subcommand_from $group_actions" -a restore -d "Restore every session in a group"
+complete -c tsm -n "__fish_seen_subcommand_from group; and not __fish_seen_subcommand_from $group_actions" -a list    -d "List saved groups"
+complete -c tsm -n "__fish_seen_subcommand_from group; and not __fish_seen_subcommand_from $group_actions" -a delete  -d "Delete a group manifest"
+complete -c tsm -n "__fish_seen_subcommand_from group; and not __fish_seen_subcommand_from $group_actions" -a help    -d "Show group help"
+
+# group save: live session names
+complete -c tsm -n "__fish_seen_subcommand_from group; and __fish_seen_subcommand_from save" -a "(__tsm_sessions)"
+# group restore/delete: saved group names
+complete -c tsm -n "__fish_seen_subcommand_from group; and __fish_seen_subcommand_from restore delete" -a "(__tsm_groups)"

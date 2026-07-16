@@ -15,13 +15,18 @@ _tsm_user_templates() {
   find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
 }
 
+_tsm_groups() {
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/groups"
+  find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
+}
+
 _tsm_completion() {
   local cur prev pprev
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   pprev="${COMP_WORDS[COMP_CWORD-2]:-}"
 
-  local subcommands="new ls kill rename config save restore log template clone doctor version help"
+  local subcommands="new ls kill rename config save restore log template clone group doctor version help"
 
   case "$prev" in
     tsm)
@@ -36,11 +41,15 @@ _tsm_completion() {
     config)
       COMPREPLY=($(compgen -W "--read --edit --reload --tsm" -- "$cur"))
       ;;
-    save)
-      COMPREPLY=($(compgen -W "--list --delete $(_tsm_sessions)" -- "$cur"))
-      ;;
     restore)
-      COMPREPLY=($(compgen -W "--with-commands $(_tsm_saved_configs)" -- "$cur"))
+      if [[ "${COMP_WORDS[1]}" == "group" ]]; then
+        COMPREPLY=($(compgen -W "$(_tsm_groups)" -- "$cur"))
+      else
+        COMPREPLY=($(compgen -W "--all --with-commands $(_tsm_saved_configs)" -- "$cur"))
+      fi
+      ;;
+    group)
+      COMPREPLY=($(compgen -W "save restore list delete help" -- "$cur"))
       ;;
     --with-commands)
       # after --with-commands, complete saved configs
@@ -68,6 +77,15 @@ _tsm_completion() {
     delete)
       if [[ "${COMP_WORDS[1]}" == "template" ]]; then
         COMPREPLY=($(compgen -W "$(_tsm_user_templates)" -- "$cur"))
+      elif [[ "${COMP_WORDS[1]}" == "group" ]]; then
+        COMPREPLY=($(compgen -W "$(_tsm_groups)" -- "$cur"))
+      fi
+      ;;
+    save)
+      if [[ "${COMP_WORDS[1]}" == "group" ]]; then
+        COMPREPLY=($(compgen -W "$(_tsm_sessions)" -- "$cur"))
+      else
+        COMPREPLY=($(compgen -W "--list --delete $(_tsm_sessions)" -- "$cur"))
       fi
       ;;
     show|tail|grep)

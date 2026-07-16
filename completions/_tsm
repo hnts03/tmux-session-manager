@@ -21,6 +21,39 @@ _tsm_user_templates() {
   _describe 'user template' templates
 }
 
+_tsm_groups() {
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/tsm/groups"
+  local groups
+  groups=(${(f)"$(find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||')"})
+  _describe 'group' groups
+}
+
+_tsm_group() {
+  local state
+  _arguments \
+    '1: :->action' \
+    '*: :->args'
+  case $state in
+    action)
+      local actions
+      actions=(
+        'save:save a set of sessions as a group'
+        'restore:restore every session in a group'
+        'list:list saved groups'
+        'delete:delete a group manifest'
+        'help:show group help'
+      )
+      _describe 'action' actions
+      ;;
+    args)
+      case $words[2] in
+        save)           _tsm_sessions ;;
+        restore|delete) _tsm_groups ;;
+      esac
+      ;;
+  esac
+}
+
 _tsm_template() {
   local state
   _arguments \
@@ -113,6 +146,7 @@ _tsm() {
         'log:pane output logging'
         'template:manage session templates'
         'clone:duplicate a live session layout'
+        'group:save/restore a named set of sessions'
         'doctor:check dependencies, config, disk usage'
         'version:show version'
         'help:show help'
@@ -152,6 +186,9 @@ _tsm() {
           ;;
         template)
           _tsm_template
+          ;;
+        group)
+          _tsm_group
           ;;
       esac
       ;;

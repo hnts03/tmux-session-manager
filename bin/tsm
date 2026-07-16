@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.16"
+VERSION="0.4.17"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -37,6 +37,7 @@ require_yq() {
 
 sessions_dir()       { echo "$_TSM_SESSIONS_DIR"; }
 logs_dir()           { echo "$_TSM_LOGS_DIR"; }
+groups_dir()         { echo "${XDG_CONFIG_HOME:-$HOME/.config}/tsm/groups"; }
 tsm_self_config_path() { echo "${XDG_CONFIG_HOME:-$HOME/.config}/tsm/config.yaml"; }
 
 # Sanitize a session name for use as a config filename (replace / with _)
@@ -1003,6 +1004,175 @@ do_restore_all() {
   echo "tsm: restored $restored session(s)${failed:+ ($failed failed)}."
 }
 
+# ─── session groups (workspaces) ─────────────────────────────────────────────
+
+group_file_for() { echo "$(groups_dir)/$(config_name_for "$1").yaml"; }
+
+do_group_save() {
+  local name="${1:-}"
+  shift || true
+  if [[ -z "$name" ]]; then
+    printf "Group name: "
+    read -r name
+    [[ -z "$name" ]] && { echo "Aborted."; return 1; }
+  fi
+
+  local members=("$@")
+  if [[ ${#members[@]} -eq 0 ]]; then
+    local picked
+    picked=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | \
+      fzf --ansi --reverse --no-sort --multi \
+          --prompt="add to group '$name' (TAB to select) > ") || return 0
+    [[ -z "$picked" ]] && { echo "No sessions selected. Aborted."; return 1; }
+    while IFS= read -r s; do [[ -n "$s" ]] && members+=("$s"); done <<< "$picked"
+  fi
+
+  # Snapshot each member's current layout so the group is restorable on its own.
+  local saved=() s
+  for s in "${members[@]}"; do
+    if ! tmux has-session -t "=$s" 2>/dev/null; then
+      echo "tsm group save: session '$s' not running — skipped." >&2
+      continue
+    fi
+    if do_save "$s" --quiet 2>/dev/null; then
+      saved+=("$s")
+    else
+      echo "tsm group save: failed to snapshot '$s' — skipped." >&2
+    fi
+  done
+
+  if [[ ${#saved[@]} -eq 0 ]]; then
+    echo "tsm group save: no sessions saved; group not created." >&2
+    return 1
+  fi
+
+  local dir
+  dir="$(groups_dir)"
+  mkdir -p "$dir"
+  local out
+  out="$(group_file_for "$name")"
+
+  if [[ -f "$out" ]]; then
+    printf "Group '%s' already exists. Overwrite? [y/N] " "$name"
+    read -r confirm
+    [[ ! "$confirm" =~ ^[yY]$ ]] && { echo "Cancelled."; return 0; }
+  fi
+
+  {
+    printf "name: %s\n" "$(yaml_squote "$name")"
+    printf "created_at: %s\n" "$(yaml_squote "$(date -u +%Y-%m-%dT%H:%M:%SZ)")"
+    printf "sessions:\n"
+    for s in "${saved[@]}"; do
+      printf "  - %s\n" "$(yaml_squote "$s")"
+    done
+  } > "$out"
+
+  echo "Saved group '$name' (${#saved[@]} session(s)): ${saved[*]}"
+}
+
+do_group_restore() {
+  local name="${1:-}"
+  if [[ -z "$name" ]]; then
+    name="$(pick_group)" || return 0
+    [[ -z "$name" ]] && return 0
+  fi
+
+  local file
+  file="$(group_file_for "$name")"
+  if [[ ! -f "$file" ]]; then
+    echo "tsm group restore: group not found: $file" >&2
+    return 1
+  fi
+
+  require_yq
+
+  local members
+  members=$(yq -r '.sessions[]' "$file" 2>/dev/null)
+  if [[ -z "$members" ]]; then
+    echo "tsm group restore: group '$name' has no sessions." >&2
+    return 1
+  fi
+
+  local restored=0 failed=0 s
+  while IFS= read -r s; do
+    [[ -z "$s" ]] && continue
+    if ( do_restore --no-attach "$s" 2>/dev/null ); then
+      (( restored++ )) || true
+    else
+      (( failed++ )) || true
+      echo "tsm group restore: failed to restore '$s' (missing config or already running)" >&2
+    fi
+  done <<< "$members"
+
+  echo "tsm: restored group '$name' — $restored session(s)${failed:+ ($failed failed)}."
+}
+
+do_group_list() {
+  local dir
+  dir="$(groups_dir)"
+  if [[ ! -d "$dir" ]]; then
+    echo "No saved groups."
+    return 0
+  fi
+  local has_yq=false
+  command -v yq &>/dev/null && has_yq=true
+  local any=false
+  while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+    local name count
+    name=$(basename "$file" .yaml)
+    if $has_yq; then
+      count=$(yq -r '.sessions | length' "$file" 2>/dev/null)
+      local members
+      members=$(yq -r '.sessions | join(", ")' "$file" 2>/dev/null)
+      printf "  %-20s  %s session(s): %s\n" "$name" "${count:-0}" "$members"
+    else
+      printf "  %s\n" "$name"
+    fi
+    any=true
+  done < <(find "$dir" -maxdepth 1 -name '*.yaml' -type f | sort)
+  $any || echo "No saved groups."
+}
+
+do_group_delete() {
+  local name="${1:-}"
+  if [[ -z "$name" ]]; then
+    name="$(pick_group)" || return 0
+    [[ -z "$name" ]] && return 0
+  fi
+  local file
+  file="$(group_file_for "$name")"
+  if [[ ! -f "$file" ]]; then
+    echo "tsm group: group not found: $file" >&2
+    return 1
+  fi
+  printf "Delete group '%s'? [y/N] " "$name"
+  read -r confirm
+  if [[ "$confirm" =~ ^[yY]$ ]]; then
+    rm -f "$file" && echo "Deleted: $file"
+  else
+    echo "Cancelled."
+  fi
+}
+
+pick_group() {
+  local dir
+  dir="$(groups_dir)"
+  if [[ ! -d "$dir" ]]; then
+    echo "tsm group: no saved groups (directory $dir does not exist)." >&2
+    return 1
+  fi
+  local groups
+  groups=$(find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null \
+    | sed -e 's|.*/||' -e 's|\.yaml$||')
+  if [[ -z "$groups" ]]; then
+    echo "tsm group: no saved groups in $dir." >&2
+    return 1
+  fi
+  echo "$groups" | fzf --ansi --reverse --no-sort --prompt="group > " \
+    --bind "q:abort,esc:abort"
+}
+
 do_save() {
   local target="${1:-}" quiet=false
   [[ "${2:-}" == "--quiet" ]] && quiet=true
@@ -1728,6 +1898,10 @@ Commands:
   template save [name]  Save current session layout as a user template
   template delete [name]Delete a user template
   clone [src] [new] Duplicate a live session's window/pane layout into a new session
+  group save <name> [session...]  Save a named set of sessions (a workspace)
+  group restore <name>            Restore every session in a group
+  group list                      List saved groups and their members
+  group delete [name]             Delete a group manifest (member configs kept)
   doctor            Check dependencies, validate config, show disk usage
   version           Show version
   help              Show this help
@@ -1872,6 +2046,32 @@ EOF
     esac
     ;;
   clone)    check_deps; shift; do_clone "$@" ;;
+  group)
+    case "${2:-}" in
+      save)    check_deps; shift 2; do_group_save "$@" ;;
+      restore) check_deps; do_group_restore "${3:-}" ;;
+      list)    do_group_list ;;
+      delete)  check_deps; do_group_delete "${3:-}" ;;
+      help|"")
+        cat <<EOF
+tsm group <action> — save/restore a named set of sessions (a workspace)
+
+Actions:
+  save <name> [session...]  Snapshot the listed sessions and record them as a group.
+                            With no sessions, opens an fzf multi-select (TAB to pick).
+  restore <name>            Restore every session in the group (fzf picker if name omitted).
+                            Already-running sessions are skipped, not fatal.
+  list                      List saved groups and their member sessions.
+  delete [name]             Delete a group (fzf picker if name omitted). Member session
+                            configs are NOT deleted — only the group manifest.
+
+Groups: \$XDG_CONFIG_HOME/tsm/groups/<name>.yaml
+Members are ordinary saved session configs, so each can still be restored individually.
+EOF
+        ;;
+      *) echo "tsm group: unknown action '${2}'" >&2; exit 1 ;;
+    esac
+    ;;
   doctor)   do_doctor ;;
   version)  echo "tsm $VERSION" ;;
   help|-h|--help) usage ;;

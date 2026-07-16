@@ -131,6 +131,11 @@ tsm log grep <pattern> [target]    # search within log file (default: current pa
 tsm log grep --plain <pattern>     # strip ANSI escapes before matching
 tsm log grep --all <pattern>       # search all log files; prefix each match with session:window.pane
 tsm clone [src] [new-name]  # duplicate a live session's window/pane layout into a new session
+tsm group save <name> [session...]  # save a named set of sessions (a workspace)
+                                    # (no sessions → fzf multi-select, TAB to pick)
+tsm group restore <name>            # restore every session in a group (picker if omitted)
+tsm group list                      # list saved groups and their member sessions
+tsm group delete [name]             # delete a group manifest (member configs kept)
 tsm doctor          # check dependencies, validate config, show log/session disk usage
 tsm version         # show version
 tsm help            # show help
@@ -210,12 +215,16 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] Picker: `r` rename, `s` save, `R` restore-saved, fzf preview pane showing windows/panes
 - [x] `~/.config/tsm/config.yaml` — persistent config file (log path, max bytes, skip commands, etc.)
 - [x] `tsm new` name conflict handling — offer to attach if session already exists
+- [x] `tsm group save/restore/list/delete` — save and restore a named set of sessions (a workspace)
 
 ### Backlog (deferred)
 
 - [ ] `tsm restore --overwrite <name>` — kill all windows/panes of a running session and rebuild from a saved config. Deferred due to destructive nature; needs confirmation flow.
 - [ ] `tsm log auto on/off` — automatic logging via tmux hooks injected into the user's config. Deferred until manual mode + size cap are battle-tested.
 - [ ] `tsm save --auto-hook install/remove` — install cron job + tmux `client-detached` hook for automatic periodic saves. Deferred pending design decision on trigger timing and granularity.
+- [ ] Capture full command lines for `--with-commands` — save each pane's running process cmdline via `ps` (e.g. `vim README.md`, not just `vim`) so restore re-opens the exact command with its arguments.
+- [ ] `tsm jump` — global fzf picker across every window/pane in all sessions; select one to switch straight to it.
+- [ ] `tsm save --auto` (periodic autosave) — see the auto-hook item; survives reboots via cron / systemd user timer.
 
 ### Future Works
 
