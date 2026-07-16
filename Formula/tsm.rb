@@ -9,11 +9,11 @@
 class Tsm < Formula
   desc "Lightweight fzf-based tmux session manager"
   homepage "https://github.com/hnts03/tmux-session-manager"
-  version "0.4.15"
+  version "0.4.17"
 
   # Update sha256 after GitHub release
   url "https://github.com/hnts03/tmux-session-manager/archive/refs/tags/v#{version}.tar.gz"
-  sha256 "7931cdf1d420293ccc371969182621737159b7ad564467b6516a7207b02c2044"
+  sha256 "e0fbd75477ab90349b8c3323a819792556e05f149e89c1e9c92aa967ea9474fe"
 
   license "MIT"
 
