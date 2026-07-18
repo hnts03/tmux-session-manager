@@ -36,6 +36,8 @@ complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a log      -d
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a template -d "Manage session templates"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a clone    -d "Duplicate a live session layout"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a group    -d "Save/restore a named set of sessions"
+complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -l popup    -d "Open the picker in a tmux popup"
+complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -l no-popup -d "Open the picker full-screen"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a doctor   -d "Check deps, config, disk usage"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a version  -d "Show version"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a help    -d "Show help"

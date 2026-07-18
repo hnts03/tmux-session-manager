@@ -175,6 +175,8 @@ log_max_bytes: 10485760          # 10 MB (default)
 sessions_dir: ~/.config/tsm/sessions
 logs_dir: ~/.local/share/tsm/logs
 auto_log: true                   # auto-start logging when tsm creates a new session
+popup: false                     # open the picker in a tmux popup (tmux >= 3.2)
+popup_size: 80%                  # popup width & height
 restore_skip_commands:           # commands NOT re-run by --with-commands
   - bash
   - zsh
@@ -189,7 +191,22 @@ restore_skip_commands:           # commands NOT re-run by --with-commands
   - less
 ```
 
-Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `TSM_SESSIONS_DIR`, `TSM_LOGS_DIR`.
+Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `TSM_SESSIONS_DIR`, `TSM_LOGS_DIR`, `TSM_POPUP`, `TSM_POPUP_SIZE`.
+
+---
+
+## Popup mode
+
+On tmux ≥ 3.2, the picker can open in a floating `display-popup` overlay instead of
+taking over the terminal:
+
+```sh
+tsm --popup      # open the picker in a popup (this run only)
+tsm --no-popup   # force full-screen (override the popup config)
+```
+
+Set `popup: true` in `~/.config/tsm/config.yaml` to make the bare `tsm` always use a
+popup. Outside tmux or on tmux < 3.2 it falls back to the full-screen picker.
 
 ---
 

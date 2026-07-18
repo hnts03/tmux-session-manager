@@ -147,6 +147,8 @@ _tsm() {
         'template:manage session templates'
         'clone:duplicate a live session layout'
         'group:save/restore a named set of sessions'
+        '--popup:open the picker in a tmux popup'
+        '--no-popup:open the picker full-screen'
         'doctor:check dependencies, config, disk usage'
         'version:show version'
         'help:show help'
