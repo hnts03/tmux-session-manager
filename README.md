@@ -221,12 +221,14 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 
 ### Backlog (deferred)
 
-- [ ] `tsm restore --overwrite <name>` — kill all windows/panes of a running session and rebuild from a saved config. Deferred due to destructive nature; needs confirmation flow.
-- [ ] `tsm log auto on/off` — automatic logging via tmux hooks injected into the user's config. Deferred until manual mode + size cap are battle-tested.
-- [ ] `tsm save --auto-hook install/remove` — install cron job + tmux `client-detached` hook for automatic periodic saves. Deferred pending design decision on trigger timing and granularity.
-- [ ] Capture full command lines for `--with-commands` — save each pane's running process cmdline via `ps` (e.g. `vim README.md`, not just `vim`) so restore re-opens the exact command with its arguments.
-- [ ] `tsm jump` — global fzf picker across every window/pane in all sessions; select one to switch straight to it.
-- [ ] `tsm save --auto` (periodic autosave) — see the auto-hook item; survives reboots via cron / systemd user timer.
+Planned features are tracked in the
+[issue tracker](https://github.com/hnts03/tmux-session-manager/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement):
+
+- [`tsm jump` — global window/pane picker](https://github.com/hnts03/tmux-session-manager/issues/2)
+- [Capture full command lines for `restore --with-commands`](https://github.com/hnts03/tmux-session-manager/issues/3)
+- [Periodic autosave (`save --all` via cron/systemd/tmux hook)](https://github.com/hnts03/tmux-session-manager/issues/4)
+- [`tsm restore --overwrite <name>`](https://github.com/hnts03/tmux-session-manager/issues/5)
+- [`tsm log auto on/off` — hook-driven auto-logging](https://github.com/hnts03/tmux-session-manager/issues/6)
 
 ### Future Works
 
