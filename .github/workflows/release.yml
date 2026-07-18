@@ -48,19 +48,18 @@ jobs:
             | sha256sum | awk '{print $1}')
           echo "SHA256=$SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Update Formula
-        run: |
-          V="${{ steps.ver.outputs.VERSION }}"
-          SHA="${{ steps.sha.outputs.SHA256 }}"
-          sed -i "s/version \"[^\"]*\"/version \"$V\"/" Formula/tsm.rb
-          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$SHA\"/" Formula/tsm.rb
-
-      - name: Commit formula update
+      - name: Update & commit formula on main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          V="${{ steps.ver.outputs.VERSION }}"
+          SHA="${{ steps.sha.outputs.SHA256 }}"
+          # Apply the edit onto the latest main tip so there is no rebase/conflict.
+          git fetch origin main
+          git checkout -B main origin/main
+          sed -i "s/version \"[^\"]*\"/version \"$V\"/" Formula/tsm.rb
+          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$SHA\"/" Formula/tsm.rb
           git add Formula/tsm.rb
           git diff --cached --quiet && exit 0
           git commit -m "chore: update formula for ${{ github.ref_name }}"
-          git pull --rebase --autostash origin main
           git push origin HEAD:main
