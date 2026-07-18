@@ -1,5 +1,7 @@
 # tsm — tmux session manager
 
+[![CI](https://github.com/hnts03/tmux-session-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/hnts03/tmux-session-manager/actions/workflows/ci.yml)
+
 > A lightweight, fzf-powered tmux session manager for the terminal.
 
 `tsm` lets you list, switch, create, and delete tmux sessions from an interactive fuzzy-search picker — no more typing session names by hand.
@@ -276,6 +278,22 @@ Environment variables always override config file values: `TSM_LOG_MAX_BYTES`, `
 - [x] `tsm clone [source-session] [new-name]` — duplicate a live session's window/pane layout into a new session
 
 ---
+
+## Contributing
+
+Working on tsm (as a human or an AI agent)? Start with **[AGENTS.md](AGENTS.md)** —
+it covers the working rules, architecture, the dev/test/release workflow, and the
+recorded design decisions. (`CLAUDE.md` is a symlink to it.)
+
+Quick loop:
+
+```sh
+bash -n bin/tsm          # syntax
+shellcheck bin/tsm       # lint (optional locally; CI gates error-level)
+test/run_all.sh          # integration suite (needs tmux, fzf, yq)
+```
+
+CI runs the same checks on every pull request and on pushes to `main`.
 
 ## License
 

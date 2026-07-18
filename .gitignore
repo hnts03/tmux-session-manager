@@ -2,8 +2,9 @@
 *.deb
 packaging/debian/usr/
 
-# Claude-specific files
-CLAUDE.md
+# Agent guidance: AGENTS.md is tracked; CLAUDE.md is a tracked symlink to it.
+# Personal / machine-specific overrides go in CLAUDE.local.md (never shared).
+CLAUDE.local.md
 .claude/
 
 # macOS
