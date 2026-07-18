@@ -30,7 +30,7 @@ _tsm_completion() {
 
   case "$prev" in
     tsm)
-      COMPREPLY=($(compgen -W "$subcommands" -- "$cur"))
+      COMPREPLY=($(compgen -W "$subcommands --popup --no-popup" -- "$cur"))
       ;;
     kill)
       COMPREPLY=($(compgen -W "--all $(_tsm_sessions)" -- "$cur"))
