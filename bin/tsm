@@ -156,7 +156,9 @@ launch_popup() {
   local size="$_TSM_POPUP_SIZE"
   local self_q
   printf -v self_q '%q' "$(command -v "$0" 2>/dev/null || printf '%s' "$0")"
-  tmux display-popup -E -w "$size" -h "$size" "TSM_IN_POPUP=1 $self_q"
+  # `env VAR=… cmd` is shell-agnostic: the bare `VAR=… cmd` prefix is not valid
+  # syntax under a fish default-shell, which tmux may use to run the popup command.
+  tmux display-popup -E -w "$size" -h "$size" "env TSM_IN_POPUP=1 $self_q"
 }
 
 # Entry point for the interactive picker: popup or full-screen based on flags/config.
