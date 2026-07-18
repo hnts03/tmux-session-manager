@@ -7,19 +7,19 @@ SOCKET="tsm-completion-test"
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 COMPLETIONS_DIR="$REPO_DIR/completions"
 
+# override tmux in this shell to use the isolated socket (defined before any use)
+tmux() { command tmux -L "$SOCKET" "$@"; }
+export -f tmux
+
 cleanup() {
-  tmux -L "$SOCKET" kill-server 2>/dev/null || true
+  tmux kill-server 2>/dev/null || true
 }
 trap cleanup EXIT
 
 # seed isolated tmux server
-tmux -L "$SOCKET" new-session -d -s alpha
-tmux -L "$SOCKET" new-session -d -s beta
-tmux -L "$SOCKET" new-session -d -s gamma
-
-# override tmux in this shell to use isolated socket
-tmux() { command tmux -L "$SOCKET" "$@"; }
-export -f tmux
+tmux new-session -d -s alpha
+tmux new-session -d -s beta
+tmux new-session -d -s gamma
 
 assert_contains() {
   local desc="$1" expected="$2" actual="$3"
