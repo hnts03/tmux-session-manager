@@ -81,6 +81,21 @@ else
 fi
 
 echo ""
+echo "[ inline dispatch returns cleanly (RETURN-trap leak regression) ]"
+# The fake fzf aborts with no selection so main() runs and returns; if main's RETURN
+# trap re-fires past its own scope we'd see "action_file: unbound variable".
+for arg in "" "--no-popup"; do
+  err=$(env -u TMUX PATH="$FAKE_BIN:$PATH" XDG_CONFIG_HOME="$CFG_HOME" \
+    bash "$TSM" $arg 2>&1 >/dev/null); rc=$?
+  label="tsm ${arg:-<no-arg>}"
+  if [[ $rc -eq 0 ]] && ! grep -qi "unbound variable" <<<"$err"; then
+    pass "$label exits cleanly (no unbound-variable)"
+  else
+    fail "$label exits cleanly" "rc=$rc err='$err'"
+  fi
+done
+
+echo ""
 echo "────────────────────────────────"
 echo "Results: $PASS passed, $FAIL failed"
 [[ $FAIL -eq 0 ]]

@@ -161,16 +161,6 @@ launch_popup() {
   tmux display-popup -E -w "$size" -h "$size" "env TSM_IN_POPUP=1 $self_q"
 }
 
-# Entry point for the interactive picker: popup or full-screen based on flags/config.
-run_picker() {
-  local override="${1:-}"
-  if [[ "$(should_use_popup "$override")" == "popup" ]]; then
-    launch_popup
-  else
-    main
-  fi
-}
-
 # ─── actions ─────────────────────────────────────────────────────────────────
 
 do_attach() {
@@ -1738,7 +1728,7 @@ main() {
         --ansi --reverse --no-sort \
         --delimiter=$'\t' \
         --with-nth=2 \
-        "${fzf_header_lines[@]}" \
+        ${fzf_header_lines[@]+"${fzf_header_lines[@]}"} \
         --prompt="tmux session > " \
         --header="$header" \
         --preview="$self_q __main_preview {1} '$pane_nav_file'" \
@@ -1995,9 +1985,14 @@ fi
 unset _tsm_cmd_key
 
 case "${1:-}" in
-  "")            check_deps; run_picker "" ;;
-  --popup)       check_deps; run_picker force-on ;;
-  --no-popup)    check_deps; run_picker force-off ;;
+  # main() sets a RETURN trap referencing its locals; it must be called from this
+  # top-level body (not via a wrapper function) or that trap re-fires on the
+  # wrapper's return with the locals gone (unbound-variable error).
+  "")            check_deps
+                 if [[ "$(should_use_popup "")" == "popup" ]]; then launch_popup; else main; fi ;;
+  --popup)       check_deps
+                 if [[ "$(should_use_popup force-on)" == "popup" ]]; then launch_popup; else main; fi ;;
+  --no-popup)    check_deps; main ;;
   __popup_check) should_use_popup "${2:-}" ;;
   __main_preview) do_main_preview "${2:-}" "${3:-}" ;;
   new)
