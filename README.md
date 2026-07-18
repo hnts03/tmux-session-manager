@@ -285,7 +285,13 @@ Working on tsm (as a human or an AI agent)? Start with **[AGENTS.md](AGENTS.md)*
 it covers the working rules, architecture, the dev/test/release workflow, and the
 recorded design decisions. (`CLAUDE.md` is a symlink to it.)
 
-Quick loop:
+**Contribution pipeline** (everyone, maintainer included):
+
+1. **Open an issue** for the roadmap item, feature, or bug first.
+2. **Work on a branch and open a PR** — no direct commits to `main`.
+3. **Run `/code-review` and get CI green before merging.**
+
+Local loop while working a PR:
 
 ```sh
 bash -n bin/tsm          # syntax

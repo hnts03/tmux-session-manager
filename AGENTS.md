@@ -42,7 +42,22 @@ For machine-specific or personal notes that should NOT be shared, use
 
 ## Development workflow
 
-1. **Branch** off `main` (don't commit straight to `main` for non-trivial work).
+### Contribution pipeline (required)
+
+This applies to **everyone, including the maintainer** — no exceptions.
+
+1. **File an issue first** for anything on the roadmap, a new feature, or a bug fix.
+   Use the issue templates (`.github/ISSUE_TEMPLATE/`). Scope and design are agreed
+   on the issue *before* code is written.
+2. **All code lands via a pull request.** Never commit straight to `main`. One PR per
+   issue/topic; link it in the PR body (`Closes #N`). Fill in the PR template.
+3. **Run `/code-review` before merging** every PR, and address the findings. CI
+   (syntax + shellcheck + the test suite) must also be green. Merge only when **both**
+   the review and CI pass.
+
+### Local loop (inside a PR branch)
+
+1. **Branch** off `main`: `git checkout -b <type>/<short-desc>` (e.g. `feat/tsm-jump`).
 2. **Edit** `bin/tsm` (and completions / docs as needed).
 3. **Check syntax:** `bash -n bin/tsm`.
 4. **Lint** (if available): `shellcheck bin/tsm`.
@@ -50,11 +65,15 @@ For machine-specific or personal notes that should NOT be shared, use
 6. **Update docs** in the same change: `README.md` usage/roadmap, shell completions
    (`completions/tsm.bash`, `completions/_tsm`, `completions/tsm.fish`), and the
    Design decisions section below when behavior is non-obvious.
-7. **Open a PR.** CI (`.github/workflows/ci.yml`) runs syntax + lint + the test suite
-   on every push and PR. Keep it green.
+7. **Push the branch and open a PR.** CI (`.github/workflows/ci.yml`) runs syntax +
+   lint + the test suite on the PR. Keep it green.
 
 When adding a user-facing subcommand, touch **all** of: dispatch in `bin/tsm`,
 `usage()`, `README.md`, the three completion files, and a test in `test/`.
+
+> The version bump is a code change too, so it goes through a PR like everything
+> else (see **Release procedure**). The only commit that lands on `main` without a
+> PR is the release CI's automated `Formula/tsm.rb` update.
 
 ---
 
@@ -88,13 +107,17 @@ pattern in the existing files.
 Version is managed in **one place only**: `VERSION=` in `bin/tsm`. CI does the rest.
 
 ```bash
-# 1. Bump VERSION in bin/tsm, then commit
-git add bin/tsm
-git commit -m "chore: bump version to vX.Y.Z"
+# 1. Bump VERSION in bin/tsm on a release branch, open a PR, /code-review, merge.
+git checkout -b chore/release-vX.Y.Z
+#   edit VERSION in bin/tsm
+git commit -am "chore: bump version to vX.Y.Z"
+git push -u origin chore/release-vX.Y.Z
+gh pr create --fill        # review + green CI, then merge
 
-# 2. Push tag — GitHub Actions takes over
+# 2. After the bump is on main, tag the merge commit — GitHub Actions takes over.
+git checkout main && git pull
 git tag vX.Y.Z
-git push origin main && git push origin vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 What `.github/workflows/release.yml` does automatically on a `v*` tag:
