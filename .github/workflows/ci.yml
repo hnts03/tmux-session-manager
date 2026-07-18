@@ -18,12 +18,13 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq tmux fzf shellcheck
+          # zsh + fish let the completion tests exercise all three shells.
+          sudo apt-get install -y -qq tmux fzf shellcheck zsh fish
           sudo wget -qO /usr/local/bin/yq \
             https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
           echo "--- versions ---"
-          tmux -V; fzf --version; yq --version; shellcheck --version | head -2
+          tmux -V; fzf --version; yq --version; zsh --version; fish --version; shellcheck --version | head -2
 
       - name: Syntax check
         run: bash -n bin/tsm

@@ -93,30 +93,34 @@ assert_not_contains "new has no completions" "alpha" "$result"
 echo ""
 echo "[ zsh completion ]"
 
-# syntax check
-zsh_syntax=$(zsh -n "$COMPLETIONS_DIR/_tsm" 2>&1)
-if [[ -z "$zsh_syntax" ]]; then
-  echo "  PASS: _tsm syntax valid"
-  ((PASS++))
+if command -v zsh &>/dev/null; then
+  # syntax check
+  zsh_syntax=$(zsh -n "$COMPLETIONS_DIR/_tsm" 2>&1)
+  if [[ -z "$zsh_syntax" ]]; then
+    echo "  PASS: _tsm syntax valid"
+    ((PASS++))
+  else
+    echo "  FAIL: _tsm syntax error: $zsh_syntax"
+    ((FAIL++))
+  fi
+
+  # _tsm_sessions helper returns session names
+  zsh_sessions=$(zsh -c "
+    tmux() { command tmux -L $SOCKET \"\$@\"; }
+    source '$COMPLETIONS_DIR/_tsm' 2>/dev/null || true
+    tmux list-sessions -F '#{session_name}' 2>/dev/null
+  ")
+  assert_contains "zsh: sessions include alpha" "alpha" "$zsh_sessions"
+  assert_contains "zsh: sessions include beta" "beta" "$zsh_sessions"
+
+  # subcommand list present in completion file
+  zsh_content=$(cat "$COMPLETIONS_DIR/_tsm")
+  assert_contains "zsh: defines kill subcommand" "kill" "$zsh_content"
+  assert_contains "zsh: defines new subcommand" "new" "$zsh_content"
+  assert_contains "zsh: defines ls subcommand" "ls" "$zsh_content"
 else
-  echo "  FAIL: _tsm syntax error: $zsh_syntax"
-  ((FAIL++))
+  echo "  SKIP: zsh not installed"
 fi
-
-# _tsm_sessions helper returns session names
-zsh_sessions=$(zsh -c "
-  tmux() { command tmux -L $SOCKET \"\$@\"; }
-  source '$COMPLETIONS_DIR/_tsm' 2>/dev/null || true
-  tmux list-sessions -F '#{session_name}' 2>/dev/null
-")
-assert_contains "zsh: sessions include alpha" "alpha" "$zsh_sessions"
-assert_contains "zsh: sessions include beta" "beta" "$zsh_sessions"
-
-# subcommand list present in completion file
-zsh_content=$(cat "$COMPLETIONS_DIR/_tsm")
-assert_contains "zsh: defines kill subcommand" "kill" "$zsh_content"
-assert_contains "zsh: defines new subcommand" "new" "$zsh_content"
-assert_contains "zsh: defines ls subcommand" "ls" "$zsh_content"
 
 # ─── fish completion tests ────────────────────────────────────────────────────
 
