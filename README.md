@@ -122,8 +122,9 @@ tsm save --delete [name]  # delete a saved config (fzf picker if name omitted)
 tsm restore [name]                 # restore a saved session (layout only)
 tsm restore --all                  # restore all saved sessions at once
 tsm restore --all --with-commands  # restore all + re-run saved commands
-tsm restore --with-commands [name] # restore layout + re-run saved commands
-                                   # (skips shells & full-screen apps:
+tsm restore --with-commands [name] # restore layout + re-run saved command lines
+                                   # (full command with args, e.g. `tail -f app.log`;
+                                   #  skips shells & full-screen apps:
                                    #  bash zsh sh fish dash tmux vim nvim top htop less)
 tsm log start [target]             # start logging current pane (or given target)
 tsm log start --all                # start logging all panes in current session

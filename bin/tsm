@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.5.1"
+VERSION="0.6.0"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -375,6 +375,23 @@ is_skip_command() {
   return 1
 }
 
+# Best-effort full command line (with args) of the foreground process on a pane's
+# tty. tmux only exposes the command NAME (#{pane_current_command}); this recovers
+# the arguments via ps. Prints the command line, or nothing if it can't resolve.
+# Portable across Linux (procps) and macOS/BSD ps.
+foreground_cmdline_for_tty() {
+  local tty="${1#/dev/}"
+  [[ -z "$tty" ]] && return 1
+  local fg_pgid
+  fg_pgid=$(ps -t "$tty" -o tpgid= 2>/dev/null | awk 'NF{print $1; exit}')
+  [[ -z "$fg_pgid" || "$fg_pgid" == "-1" ]] && return 1
+  # Print args of the foreground process group's first process, stripping the
+  # leading pgid column with sed so the command line keeps its exact spacing.
+  ps -t "$tty" -o pgid=,args= 2>/dev/null \
+    | awk -v fg="$fg_pgid" '$1==fg{print; exit}' \
+    | sed -E 's/^[[:space:]]*[0-9]+[[:space:]]+//'
+}
+
 do_restore_preview() {
   local name="${1:-}"
   [[ -z "$name" ]] && return 0
@@ -533,10 +550,17 @@ do_restore() {
 
     if $with_commands; then
       for ((pi=0; pi<n_panes; pi++)); do
-        local p_cmd
+        local p_cmd p_cmdline run base
         p_cmd=$(yq -r ".windows[$wi].panes[$pi].command" "$file")
-        if [[ -n "$p_cmd" ]] && ! is_skip_command "$p_cmd"; then
-          tmux send-keys -t "${pane_targets[$pi]}" "$p_cmd" Enter
+        # Prefer the full command line (with args) when it was captured; fall back
+        # to the bare command name for configs saved before command_line existed.
+        p_cmdline=$(yq -r ".windows[$wi].panes[$pi].command_line // \"\"" "$file")
+        run="$p_cmd"
+        [[ -n "$p_cmdline" && "$p_cmdline" != "null" ]] && run="$p_cmdline"
+        # Skip decision is on the base command name (first word, path stripped).
+        base="${run%% *}"; base="${base##*/}"
+        if [[ -n "$run" ]] && ! is_skip_command "$base"; then
+          tmux send-keys -t "${pane_targets[$pi]}" "$run" Enter
         fi
       done
     fi
@@ -1283,13 +1307,16 @@ do_save() {
 
       local panes
       panes=$(tmux list-panes -t "$target:$w_idx" \
-        -F '#{pane_index}|#{pane_active}|#{pane_current_path}|#{pane_current_command}')
+        -F '#{pane_index}|#{pane_active}|#{pane_current_path}|#{pane_current_command}|#{pane_tty}')
 
-      while IFS='|' read -r p_idx p_active p_cwd p_cmd; do
+      while IFS='|' read -r p_idx p_active p_cwd p_cmd p_tty; do
+        local p_cmdline
+        p_cmdline=$(foreground_cmdline_for_tty "$p_tty" 2>/dev/null) || p_cmdline=""
         printf "      - index: %s\n" "$p_idx"
         printf "        active: %s\n" "$(bool_from_flag "$p_active")"
         printf "        cwd: %s\n" "$(yaml_squote "$p_cwd")"
         printf "        command: %s\n" "$(yaml_squote "$p_cmd")"
+        printf "        command_line: %s\n" "$(yaml_squote "$p_cmdline")"
         printf "        log_file: %s\n" "$(yaml_squote "$(pane_log_path "$target" "$w_idx" "$p_idx")")"
       done <<< "$panes"
     done <<< "$windows"
