@@ -314,7 +314,7 @@ Local loop while working a PR:
 
 ```sh
 bash -n bin/tsm          # syntax
-shellcheck bin/tsm       # lint (optional locally; CI gates error-level)
+shellcheck bin/tsm       # lint (optional locally; CI gates warning-level)
 test/run_all.sh          # integration suite (needs tmux, fzf, yq)
 ```
 
