@@ -93,6 +93,24 @@ else
   fail "backward-compat fallback" "foreground='$(t display-message -t old:main -p '#{pane_current_command}' 2>/dev/null)'"
 fi
 
+# ─── prompt-idle shell is skipped (login shell '-zsh' must not be re-run) ────
+
+echo ""
+echo "[ an idle shell pane is not re-run (login-shell '-zsh' still skipped) ]"
+
+t new-session -d -s idle -n main    # pane sits at the shell prompt
+sleep 0.5
+"$TSM" save idle >/dev/null 2>&1
+t kill-session -t idle 2>/dev/null
+"$TSM" restore --with-commands --no-attach idle >/dev/null 2>&1
+sleep 1
+idle_pane=$(t capture-pane -p -t idle:main 2>/dev/null)
+if ! grep -qiE 'not found|-zsh|-bash' <<<"$idle_pane"; then
+  pass "idle shell not re-run (no bogus command in pane)"
+else
+  fail "idle shell skipped" "pane shows: $(echo "$idle_pane" | grep -iE 'not found|-zsh|-bash' | head -1)"
+fi
+
 # ─── result ──────────────────────────────────────────────────────────────────
 
 echo ""

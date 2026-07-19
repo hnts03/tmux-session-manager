@@ -383,12 +383,14 @@ foreground_cmdline_for_tty() {
   local tty="${1#/dev/}"
   [[ -z "$tty" ]] && return 1
   local fg_pgid
-  fg_pgid=$(ps -t "$tty" -o tpgid= 2>/dev/null | awk 'NF{print $1; exit}')
+  # Read to EOF (END-print) rather than `exit` after the first line: an early
+  # awk exit can SIGPIPE the upstream ps under `set -o pipefail`.
+  fg_pgid=$(ps -t "$tty" -o tpgid= 2>/dev/null | awk 'NF{v=$1} END{print v}')
   [[ -z "$fg_pgid" || "$fg_pgid" == "-1" ]] && return 1
-  # Print args of the foreground process group's first process, stripping the
-  # leading pgid column with sed so the command line keeps its exact spacing.
+  # Args of the foreground process group's first process; sed strips the leading
+  # pgid column so the command line keeps its exact spacing.
   ps -t "$tty" -o pgid=,args= 2>/dev/null \
-    | awk -v fg="$fg_pgid" '$1==fg{print; exit}' \
+    | awk -v fg="$fg_pgid" '$1==fg && !f{line=$0; f=1} END{print line}' \
     | sed -E 's/^[[:space:]]*[0-9]+[[:space:]]+//'
 }
 
@@ -557,8 +559,9 @@ do_restore() {
         p_cmdline=$(yq -r ".windows[$wi].panes[$pi].command_line // \"\"" "$file")
         run="$p_cmd"
         [[ -n "$p_cmdline" && "$p_cmdline" != "null" ]] && run="$p_cmdline"
-        # Skip decision is on the base command name (first word, path stripped).
-        base="${run%% *}"; base="${base##*/}"
+        # Skip decision is on the base command name (first word, path stripped,
+        # and a leading '-' dropped so a login shell like '-zsh' still matches 'zsh').
+        base="${run%% *}"; base="${base##*/}"; base="${base#-}"
         if [[ -n "$run" ]] && ! is_skip_command "$base"; then
           tmux send-keys -t "${pane_targets[$pi]}" "$run" Enter
         fi
