@@ -30,10 +30,10 @@ jobs:
         run: bash -n bin/tsm
 
       - name: Shellcheck
-        # Gate on error-level only. Warning/info findings (e.g. SC2155, SC2034)
-        # are advisory here and intentionally not blocking; revisit if we choose
-        # to tighten the bar later.
-        run: shellcheck --severity=error bin/tsm test/*.sh
+        # Gate at warning level: bin/tsm and the tests are warning-clean, so this
+        # blocks the SC2115 / SC2155 / SC2034 class (empty-var rm -rf, masked
+        # return values, unused vars) from regressing.
+        run: shellcheck --severity=warning bin/tsm test/*.sh
 
       - name: Run test suite
         run: test/run_all.sh

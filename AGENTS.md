@@ -96,6 +96,12 @@ Current suites:
 | `test/test_restore_all.sh` | `save --all` / `restore --all` lifecycle, partial-failure resilience |
 | `test/test_group.sh`       | `group save/restore/list/delete` lifecycle, member isolation |
 | `test/test_completion.sh`  | completion scripts load and expose expected subcommands |
+| `test/test_popup.sh`       | popup-mode decision matrix (`__popup_check`) + inline-dispatch regression |
+| `test/test_config.sh`      | config precedence: defaults < config file < env (`__config`) |
+| `test/test_log_clean.sh`   | `log clean` guards — empty session/dir never widens `rm -rf` |
+
+Hidden diagnostic subcommands (used by tests): `__popup_check` (popup decision),
+`__config` (resolved-config dump). Keep them undocumented in `usage()`.
 
 **Add a test with every behavior change.** Model new tests on the isolated-socket
 pattern in the existing files.

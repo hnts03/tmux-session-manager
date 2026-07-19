@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.5.0"
+VERSION="0.5.1"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -68,10 +68,12 @@ load_config() {
       _TSM_RESTORE_SKIP_COMMANDS+=("$cmd")
     done < <(yq -r '.restore_skip_commands[]' "$config_file")
   fi
-  val=$(yq -r '.auto_log // ""' "$config_file" 2>/dev/null)
+  # Read booleans WITHOUT `// ""`: yq's `//` treats a genuine `false` as empty,
+  # which would silently drop `auto_log: false`. Absent keys yield "null" here.
+  val=$(yq -r '.auto_log' "$config_file" 2>/dev/null)
   [[ "$val" == "false" ]] && _TSM_AUTO_LOG=false
   [[ "$val" == "true"  ]] && _TSM_AUTO_LOG=true
-  val=$(yq -r '.popup // ""' "$config_file" 2>/dev/null)
+  val=$(yq -r '.popup' "$config_file" 2>/dev/null)
   [[ "$val" == "false" ]] && _TSM_POPUP=false
   [[ "$val" == "true"  ]] && _TSM_POPUP=true
   val=$(yq -r '.popup_size // ""' "$config_file" 2>/dev/null)
@@ -925,20 +927,25 @@ do_log_clean() {
   local arg="${1:-}"
   local dir
   dir=$(logs_dir)
+  # Guard every rm -rf below: an empty $dir/$session/$arg must never let the path
+  # widen to "/" or the whole logs dir. ${var:?} aborts instead of deleting.
+  [[ -n "$dir" ]] || { echo "tsm log clean: logs directory is unset." >&2; exit 1; }
   case "$arg" in
     --all)
-      [[ -d "$dir" ]] && rm -rf "$dir"/*.log "$dir"/*.log.1 "$dir"/*/*.log "$dir"/*/*.log.1 2>/dev/null
+      [[ -d "$dir" ]] && rm -rf "${dir:?}"/*.log "${dir:?}"/*.log.1 \
+                                "${dir:?}"/*/*.log "${dir:?}"/*/*.log.1 2>/dev/null
       echo "Cleaned all logs under $dir"
       ;;
     "")
       in_tmux || { echo "tsm log clean: specify a session or use --all." >&2; exit 1; }
       local session
       session=$(current_session)
-      rm -rf "$dir/$session"
+      [[ -n "$session" ]] || { echo "tsm log clean: could not resolve current session." >&2; exit 1; }
+      rm -rf "${dir:?}/${session:?}"
       echo "Cleaned: $dir/$session"
       ;;
     *)
-      rm -rf "$dir/$arg"
+      rm -rf "${dir:?}/${arg:?}"
       echo "Cleaned: $dir/$arg"
       ;;
   esac
@@ -1038,7 +1045,7 @@ do_restore_all() {
     return 1
   fi
 
-  local restored=0 skipped=0 failed=0
+  local restored=0 failed=0
   for file in "${files[@]}"; do
     local name
     name=$(basename "$file" .yaml)
@@ -1243,7 +1250,7 @@ do_save() {
   local dir
   dir="$(sessions_dir)"
   mkdir -p "$dir"
-  local out="$dir/$(config_name_for "$target").yaml"
+  local out; out="$dir/$(config_name_for "$target").yaml"
 
   if [[ -f "$out" ]] && ! $quiet; then
     local stored_name=""
@@ -1519,7 +1526,7 @@ do_template_save() {
   local dir
   dir="$(templates_dir)"
   mkdir -p "$dir"
-  local out="$dir/$(config_name_for "$name").yaml"
+  local out; out="$dir/$(config_name_for "$name").yaml"
 
   if [[ -f "$out" ]]; then
     printf "Template '%s' already exists. Overwrite? [y/N] " "$name"
@@ -1994,6 +2001,9 @@ case "${1:-}" in
                  if [[ "$(should_use_popup force-on)" == "popup" ]]; then launch_popup; else main; fi ;;
   --no-popup)    check_deps; main ;;
   __popup_check) should_use_popup "${2:-}" ;;
+  __config)      printf 'sessions_dir=%s\nlogs_dir=%s\nlog_max_bytes=%s\nauto_log=%s\npopup=%s\npopup_size=%s\n' \
+                   "$_TSM_SESSIONS_DIR" "$_TSM_LOGS_DIR" "$_TSM_LOG_MAX_BYTES" \
+                   "$_TSM_AUTO_LOG" "$_TSM_POPUP" "$_TSM_POPUP_SIZE" ;;
   __main_preview) do_main_preview "${2:-}" "${3:-}" ;;
   new)
     check_deps
