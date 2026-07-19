@@ -26,8 +26,9 @@ $ tsm
 
 ## Requirements
 
-- [tmux](https://github.com/tmux/tmux) ≥ 2.8
+- [tmux](https://github.com/tmux/tmux) ≥ 2.8 (≥ 3.2 for popup mode)
 - [fzf](https://github.com/junegunn/fzf)
+- [yq](https://github.com/mikefarah/yq) — required for save/restore, templates, groups, and the config file (other commands work without it)
 
 ---
 
@@ -117,6 +118,7 @@ tsm config --tsm    # edit tsm's own config (~/.config/tsm/config.yaml)
 tsm save [name]     # save session to ~/.config/tsm/sessions/<name>.yaml
                     # (uses current attached session if name omitted)
                     # add description: "..." to the YAML to show in picker preview
+tsm save --all      # save every running session at once
 tsm save --list     # list saved configs with metadata (date, windows, panes)
 tsm save --delete [name]  # delete a saved config (fzf picker if name omitted)
 tsm restore [name]                 # restore a saved session (layout only)
@@ -126,13 +128,23 @@ tsm restore --with-commands [name] # restore layout + re-run saved command lines
                                    # (full command with args, e.g. `tail -f app.log`;
                                    #  skips shells & full-screen apps:
                                    #  bash zsh sh fish dash tmux vim nvim top htop less)
-tsm log start [target]             # start logging current pane (or given target)
-tsm log start --all                # start logging all panes in current session
-tsm log start --all-sessions       # start logging all unlogged panes across all sessions
-tsm log stop --all-sessions        # stop logging all logged panes across all sessions
+tsm log start [target]             # start logging a pane (--all / --all-sessions;
+                                   # --timestamp prepends a timestamp to each line)
+tsm log stop [target]              # stop logging (--all / --all-sessions)
+tsm log status                     # show panes currently being logged
+tsm log list [session]             # list log files (optionally filter by session)
+tsm log show [target] [--plain]    # view a log via $PAGER (--plain strips ANSI)
+tsm log tail [target] [--plain]    # follow a log in real time (like tail -f)
 tsm log grep <pattern> [target]    # search within log file (default: current pane)
 tsm log grep --plain <pattern>     # strip ANSI escapes before matching
 tsm log grep --all <pattern>       # search all log files; prefix each match with session:window.pane
+tsm log clean [session|--all]      # delete log files
+                                   # (see `tsm log help` for the full reference)
+tsm template               # open the template picker (new session from a template)
+tsm template list          # list all templates (built-in + user)
+tsm template apply [name]  # create a new session from a template
+tsm template save [name]   # save the current session layout as a user template
+tsm template delete [name] # delete a user template
 tsm clone [src] [new-name]  # duplicate a live session's window/pane layout into a new session
 tsm group save <name> [session...]  # save a named set of sessions (a workspace)
                                     # (no sessions → fzf multi-select, TAB to pick)
@@ -140,6 +152,7 @@ tsm group restore <name>            # restore every session in a group (picker i
 tsm group list                      # list saved groups and their member sessions
 tsm group delete [name]             # delete a group manifest (member configs kept)
 tsm doctor          # check dependencies, validate config, show log/session disk usage
+tsm --popup         # open the picker in a tmux popup (see "Popup mode"; also --no-popup)
 tsm version         # show version
 tsm help            # show help
 ```
