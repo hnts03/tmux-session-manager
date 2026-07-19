@@ -154,6 +154,11 @@ maintainer specifies otherwise.
   Full-screen apps are skipped: re-running them with no args is useless and their
   redraw collides with the restore TTY notification.
 - Skip-list default is hardcoded; users override via `restore_skip_commands` in config.
+- Full command line (with args) is captured at save time into `command_line` per pane,
+  via `foreground_cmdline_for_tty` (ps on the pane's tty foreground process group —
+  tmux only exposes the command *name*). Restore prefers `command_line`, falls back to
+  `command` for pre-0.6.0 configs; the skip check runs on the base command name.
+  Capture is best-effort — an empty `command_line` just means "use `command`".
 
 **Session groups / workspaces (`tsm group`)**
 - A group is a named set of sessions stored at `~/.config/tsm/groups/<name>.yaml`.
