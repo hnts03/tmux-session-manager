@@ -1972,20 +1972,23 @@ Commands:
   config --tsm      Edit tsm's own config (~/.config/tsm/config.yaml)
   save [name]       Save session layout to ~/.config/tsm/sessions/<name>.yaml
                     (uses current session if name omitted)
+  save --all        Save every running session at once
   save --list       List saved configs with metadata
   save --delete [name]  Delete a saved config (fzf picker if name omitted)
   restore [name]              Restore a saved session (fzf picker if omitted)
   restore --all               Restore all saved sessions at once
-  restore --all --with-commands  Restore all + re-run saved commands
+  restore --all --with-commands  Restore all + re-run saved command lines
   restore --with-commands [name]
-                              Restore layout and re-run saved commands
-                              (skips: bash zsh sh fish dash tmux)
+                              Restore layout and re-run saved command lines
+                              (full command with args; skips shells &
+                               full-screen apps: bash zsh sh fish dash tmux
+                               vim nvim top htop less)
   log <action>      Pane output logging (see 'tsm log help')
   template              Open template picker (create new session from template)
   template list         List all templates (built-in + user)
   template apply [name] Create a new session from a template
-  template save [name]  Save current session layout as a user template
-  template delete [name]Delete a user template
+  template save [name]   Save current session layout as a user template
+  template delete [name] Delete a user template
   clone [src] [new] Duplicate a live session's window/pane layout into a new session
   group save <name> [session...]  Save a named set of sessions (a workspace)
   group restore <name>            Restore every session in a group
@@ -1996,16 +1999,21 @@ Commands:
   help              Show this help
 
 Keybindings (inside picker):
-  ↑↓ / j k    Navigate
-  Enter/Space  Attach to session
-  d / ⌫       Delete session
+  ↑↓ / j k     Navigate
+  1-9          Attach to the nth session instantly (no Enter)
+  Enter/Space  Attach to selected session
+  d            Delete session (confirmation prompt)
   n / N        New session
   r            Rename selected session
   s            Save selected session layout
-  R            Restore a saved session (opens picker)
+  S            Save all running sessions (confirmation prompt)
+  R            Restore a saved session (opens restore menu)
+  W            (in restore menu) restore layout + re-run saved command lines
   l            Toggle pane logging for the selected session's active pane
   t            Create new session from a template (opens template picker)
   E            Detach current client
+  < / >        Cycle through panes of the previewed session
+  [ / ]        Shrink / grow the preview pane
   q / ESC      Quit
 EOF
 }
