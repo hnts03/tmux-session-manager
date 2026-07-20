@@ -108,22 +108,36 @@ pattern in the existing files.
 
 ---
 
+## Versioning policy
+
+`tsm` follows SemVer (`major.minor.patch`), managed in **one place only**: `VERSION=`
+in `bin/tsm`.
+
+1. **Patch (`z`)** — bump in the PR that lands a completed **feature or bug fix** on
+   `main`. This is the default and the only bump you make on your own. (Docs-only or
+   chore-only PRs with no behavior change don't bump.)
+2. **Minor (`y`) / major (`x`)** — bump **only when the maintainer explicitly asks**.
+   Never unilaterally decide a change is "minor" or "major"; ship it as a patch unless
+   told otherwise.
+3. **Every release gets release notes** — write curated notes for each `vX.Y.Z` (what
+   changed, notable fixes, behavior changes). GitHub's auto-generated notes are a
+   starting point, not a substitute.
+
 ## Release procedure
 
 Version is managed in **one place only**: `VERSION=` in `bin/tsm`. CI does the rest.
 
 ```bash
-# 1. Bump VERSION in bin/tsm on a release branch, open a PR, /code-review, merge.
-git checkout -b chore/release-vX.Y.Z
-#   edit VERSION in bin/tsm
-git commit -am "chore: bump version to vX.Y.Z"
-git push -u origin chore/release-vX.Y.Z
-gh pr create --fill        # review + green CI, then merge
+# 1. The VERSION bump rides along in the feature/fix PR (patch by default; see
+#    Versioning policy). Once that PR is merged, main already carries the new version.
 
-# 2. After the bump is on main, tag the merge commit — GitHub Actions takes over.
+# 2. To cut the release, tag main's tip at the version in bin/tsm — CI takes over.
 git checkout main && git pull
-git tag vX.Y.Z
+git tag vX.Y.Z            # must equal VERSION in bin/tsm
 git push origin vX.Y.Z
+
+# 3. After the release job succeeds, write release notes for the GitHub release
+#    (e.g. `gh release edit vX.Y.Z --notes-file ...`).
 ```
 
 What `.github/workflows/release.yml` does automatically on a `v*` tag:
@@ -134,6 +148,11 @@ What `.github/workflows/release.yml` does automatically on a `v*` tag:
 
 **Never do manually:** edit `Formula/tsm.rb` version/SHA, build the `.deb`, or change
 the version in `Makefile`. Let CI own those.
+
+**Transient GitHub outages:** the release job can fail at *Create GitHub Release* if
+GitHub's API is 503-ing (an incident, not our bug — the `.deb` build step still
+passes). The tag is already pushed, so just `gh run rerun <run-id>` once GitHub
+recovers; no re-tag needed.
 
 ---
 
