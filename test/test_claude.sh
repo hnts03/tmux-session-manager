@@ -51,10 +51,14 @@ o2=$(t show-options -pv -t "$P2" @claude_state 2>/dev/null)
 echo ""
 echo "[ tsm claude --status shows both, with state + target ]"
 
+# Compute each pane's target dynamically — window/pane indices depend on the
+# server's base-index (0 by default, 1 if the user's tmux.conf sets it).
+TGT1=$(t display-message -t "$P1" -p '#{session_name}:#{window_index}.#{pane_index}')
+TGT2=$(t display-message -t "$P2" -p '#{session_name}:#{window_index}.#{pane_index}')
 out=$("$TSM" claude --status 2>&1)
-echo "$out" | grep -q "running" && echo "$out" | grep -q "work:1.1" && pass "shows running work:1.1" \
+echo "$out" | grep -- "$TGT1" | grep -q "running" && pass "shows running for $TGT1" \
   || fail "status running" "got: $out"
-echo "$out" | grep -q "waiting" && echo "$out" | grep -q "dev:1.1" && pass "shows waiting dev:1.1" \
+echo "$out" | grep -- "$TGT2" | grep -q "waiting" && pass "shows waiting for $TGT2" \
   || fail "status waiting" "got: $out"
 
 echo ""
