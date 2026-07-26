@@ -151,6 +151,7 @@ tsm group save <name> [session...]  # save a named set of sessions (a workspace)
 tsm group restore <name>            # restore every session in a group (picker if omitted)
 tsm group list                      # list saved groups and their member sessions
 tsm group delete [name]             # delete a group manifest (member configs kept)
+tsm claude --status # show Claude Code state per pane (alias: tsm cc; see "Claude Code monitoring")
 tsm doctor          # check dependencies, validate config, show log/session disk usage
 tsm --popup         # open the picker in a tmux popup (see "Popup mode"; also --no-popup)
 tsm version         # show version
@@ -221,6 +222,33 @@ tsm --no-popup   # force full-screen (override the popup config)
 
 Set `popup: true` in `~/.config/tsm/config.yaml` to make the bare `tsm` always use a
 popup. Outside tmux or on tmux < 3.2 it falls back to the full-screen picker.
+
+---
+
+## Claude Code monitoring
+
+`tsm claude --status` (alias `tsm cc --status`) shows, per tmux pane, whether a
+[Claude Code](https://claude.com/claude-code) session is **running**, **waiting** for
+your input, **idle**, or in **error** — so you can spot which sessions are blocked on
+you across all your panes.
+
+It reads state that Claude Code's own hooks report. Add these to
+`~/.claude/settings.json` to enable it (automatic install via
+`tsm claude --install-hooks` is planned):
+
+```json
+"hooks": {
+  "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook running" }] }],
+  "PreToolUse":       [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook running" }] }],
+  "Notification":     [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook waiting" }] }],
+  "Stop":             [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook idle"    }] }],
+  "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook clear"   }] }]
+}
+```
+
+Each hook stamps the pane's state via tmux; `tsm claude --status` aggregates it. A
+`running` state that hasn't refreshed within 5 minutes is shown as `stale`. Run
+`tsm claude help` to print this snippet.
 
 ---
 

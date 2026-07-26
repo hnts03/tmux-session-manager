@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.6.0"
+VERSION="0.6.1"
 
 # ─── config defaults (overridden by config file, then env vars) ──────────────
 
@@ -1949,6 +1949,98 @@ do_doctor() {
   [[ $fail -gt 0 ]] && return 1 || return 0
 }
 
+# ─── claude code integration ─────────────────────────────────────────────────
+
+# A 'running' state older than this (no hook update) is treated as stale.
+_CLAUDE_STATE_TTL=300
+
+# Producer primitive: stamp the current pane's Claude Code state. Called by the
+# Claude Code hooks (see `tsm claude help`). Runs on every hook event, so it stays
+# minimal — no config load, no deps check beyond tmux.
+do_claude_hook() {
+  local state="${1:-}"
+  [[ -n "${TMUX_PANE:-}" ]] || return 0          # not inside tmux — nothing to report
+  command -v tmux &>/dev/null || return 0
+  if [[ "$state" == "clear" || -z "$state" ]]; then
+    tmux set-option -pu -t "$TMUX_PANE" @claude_state 2>/dev/null || true
+  else
+    tmux set-option -p -t "$TMUX_PANE" @claude_state "$state@$(date +%s)" 2>/dev/null || true
+  fi
+  return 0
+}
+
+# Consumer: show each pane's reported Claude Code state across all sessions.
+do_claude_status() {
+  command -v tmux &>/dev/null || { echo "tsm claude: tmux not found." >&2; return 1; }
+  local now any=false
+  now=$(date +%s)
+  local fmt='#{session_name}:#{window_index}.#{pane_index}|#{@claude_state}'
+  while IFS='|' read -r target raw; do
+    [[ -z "$raw" ]] && continue                  # pane not reporting state
+    any=true
+    local state="${raw%@*}" ts="${raw##*@}" age=""
+    [[ "$ts" =~ ^[0-9]+$ ]] && age=$(( now - ts ))
+    # a 'running' that hasn't refreshed within the TTL is suspect (crash?)
+    [[ "$state" == "running" && -n "$age" && "$age" -gt "$_CLAUDE_STATE_TTL" ]] && state="stale"
+    local mark
+    case "$state" in
+      running) mark=$'\e[32m●\e[0m' ;;
+      waiting) mark=$'\e[33m●\e[0m' ;;
+      idle)    mark=$'\e[2m○\e[0m'  ;;
+      error)   mark=$'\e[31m●\e[0m' ;;
+      stale)   mark=$'\e[33m⚠\e[0m' ;;
+      *)       mark='·' ;;
+    esac
+    printf '  %s %-8s %s' "$mark" "$state" "$target"
+    [[ -n "$age" ]] && printf '  \e[2m(%ss ago)\e[0m' "$age"
+    printf '\n'
+  done < <(tmux list-panes -a -F "$fmt" 2>/dev/null)
+  $any || echo "No Claude Code panes are reporting state. Enable it with 'tsm claude help'."
+}
+
+_claude_hook_snippet() {
+  cat <<'EOF'
+Add these hooks to ~/.claude/settings.json so Claude Code reports its state to tsm:
+
+  "hooks": {
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook running" }] }],
+    "PreToolUse":       [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook running" }] }],
+    "Notification":     [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook waiting" }] }],
+    "Stop":             [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook idle"    }] }],
+    "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "tsm __claude-hook clear"   }] }]
+  }
+
+Each pane's state then shows in `tsm claude --status`. (Automatic installation via
+`tsm claude --install-hooks` is planned.)
+EOF
+}
+
+do_claude() {
+  case "${1:-}" in
+    --status) do_claude_status ;;
+    --install-hooks)
+      echo "tsm claude --install-hooks is not implemented yet — add the hooks manually:" >&2
+      echo >&2
+      _claude_hook_snippet >&2
+      ;;
+    help|"")
+      cat <<'EOF'
+tsm claude <option>   (alias: tsm cc)
+
+Monitor Claude Code sessions running in tmux panes.
+
+Options:
+  --status         Show each pane's Claude Code state (running/waiting/idle/error)
+  --install-hooks  (planned) install the reporting hooks into ~/.claude/settings.json
+  help             Show this help and the hook snippet
+
+EOF
+      _claude_hook_snippet
+      ;;
+    *) echo "tsm claude: unknown option '${1}'" >&2; exit 1 ;;
+  esac
+}
+
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
 usage() {
@@ -1990,6 +2082,7 @@ Commands:
   template save [name]   Save current session layout as a user template
   template delete [name] Delete a user template
   clone [src] [new] Duplicate a live session's window/pane layout into a new session
+  claude --status   Show Claude Code state per pane (alias: cc; 'tsm claude help')
   group save <name> [session...]  Save a named set of sessions (a workspace)
   group restore <name>            Restore every session in a group
   group list                      List saved groups and their members
@@ -2023,7 +2116,8 @@ _tsm_cmd_key="${1:-}:${2:-}"
 if [[ "$_tsm_cmd_key" != "log:__write" && \
       "$_tsm_cmd_key" != "template:__preview" && \
       "$_tsm_cmd_key" != "restore:__preview" && \
-      "${1:-}" != "__main_preview" ]]; then
+      "${1:-}" != "__main_preview" && \
+      "${1:-}" != "__claude-hook" ]]; then
   load_config
   apply_env_overrides
 fi
@@ -2154,6 +2248,8 @@ EOF
     esac
     ;;
   clone)    check_deps; shift; do_clone "$@" ;;
+  claude|cc) shift; do_claude "$@" ;;
+  __claude-hook) do_claude_hook "${2:-}" ;;
   group)
     case "${2:-}" in
       save)    check_deps; shift 2; do_group_save "$@" ;;

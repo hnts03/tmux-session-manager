@@ -19,7 +19,7 @@ function __tsm_groups
     find "$dir" -maxdepth 1 -name '*.yaml' -type f 2>/dev/null | sed 's|.*/||; s|\.yaml$||'
 end
 
-set -l subcommands new ls kill rename config save restore log template clone group doctor version help
+set -l subcommands new ls kill rename config save restore log template clone group claude cc doctor version help
 
 # disable file completion
 complete -c tsm -f
@@ -36,6 +36,12 @@ complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a log      -d
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a template -d "Manage session templates"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a clone    -d "Duplicate a live session layout"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a group    -d "Save/restore a named set of sessions"
+complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a claude   -d "Monitor Claude Code sessions per pane"
+complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a cc       -d "Alias for claude"
+
+# claude / cc: options
+complete -c tsm -n "__fish_seen_subcommand_from claude cc" -l status        -d "Show Claude Code state per pane"
+complete -c tsm -n "__fish_seen_subcommand_from claude cc" -l install-hooks -d "Install reporting hooks (planned)"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -l popup    -d "Open the picker in a tmux popup"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -l no-popup -d "Open the picker full-screen"
 complete -c tsm -n "not __fish_seen_subcommand_from $subcommands" -a doctor   -d "Check deps, config, disk usage"
