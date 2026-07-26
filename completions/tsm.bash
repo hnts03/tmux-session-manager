@@ -26,7 +26,7 @@ _tsm_completion() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   pprev="${COMP_WORDS[COMP_CWORD-2]:-}"
 
-  local subcommands="new ls kill rename config save restore log template clone group doctor version help"
+  local subcommands="new ls kill rename config save restore log template clone group claude cc doctor version help"
 
   case "$prev" in
     tsm)
@@ -50,6 +50,9 @@ _tsm_completion() {
       ;;
     group)
       COMPREPLY=($(compgen -W "save restore list delete help" -- "$cur"))
+      ;;
+    claude|cc)
+      COMPREPLY=($(compgen -W "--status --install-hooks help" -- "$cur"))
       ;;
     --with-commands)
       # after --with-commands, complete saved configs

@@ -147,6 +147,8 @@ _tsm() {
         'template:manage session templates'
         'clone:duplicate a live session layout'
         'group:save/restore a named set of sessions'
+        'claude:monitor Claude Code sessions per pane'
+        'cc:alias for claude'
         '--popup:open the picker in a tmux popup'
         '--no-popup:open the picker full-screen'
         'doctor:check dependencies, config, disk usage'
@@ -191,6 +193,11 @@ _tsm() {
           ;;
         group)
           _tsm_group
+          ;;
+        claude|cc)
+          _arguments \
+            '--status[show Claude Code state per pane]' \
+            '--install-hooks[install reporting hooks (planned)]'
           ;;
       esac
       ;;

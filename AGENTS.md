@@ -99,9 +99,11 @@ Current suites:
 | `test/test_popup.sh`       | popup-mode decision matrix (`__popup_check`) + inline-dispatch regression |
 | `test/test_config.sh`      | config precedence: defaults < config file < env (`__config`) |
 | `test/test_log_clean.sh`   | `log clean` guards — empty session/dir never widens `rm -rf` |
+| `test/test_claude.sh`      | `claude --status` + `__claude-hook` producer, staleness, alias |
 
-Hidden diagnostic subcommands (used by tests): `__popup_check` (popup decision),
-`__config` (resolved-config dump). Keep them undocumented in `usage()`.
+Hidden subcommands (undocumented in `usage()`): `__popup_check` (popup decision),
+`__config` (resolved-config dump), `__claude-hook <state>` (Claude Code hooks stamp the
+pane's state). `__claude-hook` skips config loading — it runs on every hook event.
 
 **Add a test with every behavior change.** Model new tests on the isolated-socket
 pattern in the existing files.
@@ -190,6 +192,16 @@ maintainer specifies otherwise.
 **Restore log-path notice**
 - On save, each pane records its `log_file` path in the yaml. On restore, that path
   is written directly to the pane's TTY (not via the shell) so history isn't polluted.
+
+**Claude Code monitoring (`tsm claude` / `tsm cc`)**
+- Producer: Claude Code hooks call `tsm __claude-hook <state>`, which stamps the pane's
+  `@claude_state` tmux option as `<state>@<epoch>` (keyed by `$TMUX_PANE`, which Claude
+  Code inherits inside tmux — verified). States: running / waiting / idle / error / clear.
+- Consumer: `tsm claude --status` reads `#{@claude_state}` across `list-panes -a`; a
+  `running` older than `_CLAUDE_STATE_TTL` (300s) shows as `stale`.
+- The `@claude_state` format is owned by tsm — settings.json only references
+  `tsm __claude-hook <state>`. Auto-install (`--install-hooks`) is a planned follow-up
+  (issue #19); resuming the latest session is a separate idea (#20).
 
 **Config file (`~/.config/tsm/config.yaml`)**
 - Options: `log_max_bytes`, `sessions_dir`, `logs_dir`, `restore_skip_commands`, `auto_log`.
